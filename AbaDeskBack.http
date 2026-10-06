@@ -1,0 +1,6 @@
+@AbaDeskBack_HostAddress = http://localhost:5017
+
+GET {{AbaDeskBack_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
