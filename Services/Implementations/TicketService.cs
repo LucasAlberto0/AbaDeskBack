@@ -196,6 +196,8 @@ public class TicketService : ITicketService
             .Include(t => t.CreatedByUser)
             .Include(t => t.AssignedToUser)
             .Include(t => t.HomologationResponsibleUser)
+            .Include(t => t.Comments).ThenInclude(c => c.User)
+            .Include(t => t.History).ThenInclude(h => h.User)
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == ticketId);
 
@@ -242,7 +244,38 @@ public class TicketService : ITicketService
                 Email = ticket.HomologationResponsibleUser.Email,
                 Role = ticket.HomologationResponsibleUser.Role,
                 IsActive = ticket.HomologationResponsibleUser.IsActive
-            } : null
+            } : null,
+            Comments = ticket.Comments.OrderBy(c => c.CreatedAt).Select(c => new CommentResponse
+            {
+                Id = c.Id,
+                Content = c.Content,
+                CreatedAt = c.CreatedAt,
+                User = new UserResponse
+                {
+                    Id = c.User!.Id,
+                    Name = c.User.Name,
+                    Email = c.User.Email,
+                    Role = c.User.Role,
+                    IsActive = c.User.IsActive
+                }
+            }).ToList(),
+            Histories = ticket.History.OrderByDescending(h => h.CreatedAt).Select(h => new HistoryResponse
+            {
+                Id = h.Id,
+                Action = h.Action,
+                FromStatus = h.FromStatus,
+                ToStatus = h.ToStatus,
+                Description = h.Description,
+                CreatedAt = h.CreatedAt,
+                User = new UserResponse
+                {
+                    Id = h.User!.Id,
+                    Name = h.User.Name,
+                    Email = h.User.Email,
+                    Role = h.User.Role,
+                    IsActive = h.User.IsActive
+                }
+            }).ToList()
         };
     }
 

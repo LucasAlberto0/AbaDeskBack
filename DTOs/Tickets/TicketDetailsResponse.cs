@@ -25,4 +25,7 @@ public class TicketDetailsResponse
     public UserResponse? CreatedBy { get; set; }
     public UserResponse? AssignedTo { get; set; }
     public UserResponse? HomologationResponsible { get; set; }
+    
+    public List<AbaDeskBack.DTOs.Comments.CommentResponse> Comments { get; set; } = new();
+    public List<AbaDeskBack.DTOs.History.HistoryResponse> Histories { get; set; } = new();
 }
