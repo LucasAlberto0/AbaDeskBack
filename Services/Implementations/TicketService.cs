@@ -37,7 +37,7 @@ public class TicketService : ITicketService
 
     private void EnsureUserCanAccessTicket(Ticket ticket, Guid userId, Role userRole)
     {
-        if (userRole == Role.User && ticket.CreatedByUserId != userId && ticket.HomologationResponsibleUserId != userId)
+        if (userRole == Role.User && ticket.CreatedByUserId != userId)
         {
             throw new UnauthorizedAccessException("Você não tem permissão para acessar este chamado.");
         }
@@ -57,9 +57,8 @@ public class TicketService : ITicketService
             SystemName = request.SystemName,
             Category = request.Category,
             Priority = request.Priority,
-            Status = TicketStatus.NEW,
-            CreatedByUserId = userId,
-            HomologationResponsibleUserId = userId // By default, the creator is responsible for homologation
+            Status = TicketStatus.Open,
+            CreatedByUserId = userId
         };
 
         _context.Tickets.Add(ticket);
@@ -69,7 +68,7 @@ public class TicketService : ITicketService
             TicketId = ticket.Id,
             UserId = userId,
             Action = "Chamado criado",
-            ToStatus = TicketStatus.NEW,
+            ToStatus = TicketStatus.Open,
             Description = $"Chamado aberto no sistema: {request.Title}"
         };
 
@@ -112,7 +111,7 @@ public class TicketService : ITicketService
 
         if (userRole == Role.User)
         {
-            query = query.Where(t => t.CreatedByUserId == userId || t.HomologationResponsibleUserId == userId);
+            query = query.Where(t => t.CreatedByUserId == userId);
         }
 
         if (status.HasValue)
@@ -195,7 +194,6 @@ public class TicketService : ITicketService
         var ticket = await _context.Tickets
             .Include(t => t.CreatedByUser)
             .Include(t => t.AssignedToUser)
-            .Include(t => t.HomologationResponsibleUser)
             .Include(t => t.Comments).ThenInclude(c => c.User)
             .Include(t => t.History).ThenInclude(h => h.User)
             .AsNoTracking()
@@ -237,14 +235,7 @@ public class TicketService : ITicketService
                 Role = ticket.AssignedToUser.Role,
                 IsActive = ticket.AssignedToUser.IsActive
             } : null,
-            HomologationResponsible = ticket.HomologationResponsibleUser != null ? new UserResponse
-            {
-                Id = ticket.HomologationResponsibleUser.Id,
-                Name = ticket.HomologationResponsibleUser.Name,
-                Email = ticket.HomologationResponsibleUser.Email,
-                Role = ticket.HomologationResponsibleUser.Role,
-                IsActive = ticket.HomologationResponsibleUser.IsActive
-            } : null,
+
             Comments = ticket.Comments.OrderBy(c => c.CreatedAt).Select(c => new CommentResponse
             {
                 Id = c.Id,
@@ -401,11 +392,11 @@ public class TicketService : ITicketService
         var ticket = await _context.Tickets.FindAsync(ticketId);
         if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
         if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem iniciar análise.");
-        if (ticket.Status != TicketStatus.NEW) throw new InvalidOperationException("O chamado não está no status Novo.");
+        if (ticket.Status != TicketStatus.Open) throw new InvalidOperationException("O chamado não está no status Aberto.");
 
-        ticket.Status = TicketStatus.ANALYZING;
+        ticket.Status = TicketStatus.InAnalysis;
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
-        AddHistory(ticket, userId, "Análise iniciada", "O chamado entrou em análise.", TicketStatus.NEW, TicketStatus.ANALYZING);
+        AddHistory(ticket, userId, "Análise iniciada", "O chamado entrou em análise.", TicketStatus.Open, TicketStatus.InAnalysis);
         await _context.SaveChangesAsync();
     }
 
@@ -424,49 +415,32 @@ public class TicketService : ITicketService
         await _context.SaveChangesAsync();
     }
 
-    public async Task StartDevelopmentAsync(Guid ticketId, Guid userId, Role userRole)
+    public async Task StartProgressAsync(Guid ticketId, Guid userId, Role userRole)
     {
         var ticket = await _context.Tickets.FindAsync(ticketId);
         if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
-        if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem iniciar desenvolvimento.");
-        if (ticket.Status != TicketStatus.ANALYZING && ticket.Status != TicketStatus.WAITING_HOMOLOGATION) 
-            throw new InvalidOperationException("Transição inválida para desenvolvimento.");
-        if (!ticket.AssignedToUserId.HasValue) throw new InvalidOperationException("É necessário atribuir um responsável antes de iniciar o desenvolvimento.");
+        if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem iniciar o atendimento.");
+        if (ticket.Status != TicketStatus.InAnalysis && ticket.Status != TicketStatus.WaitingUser) 
+            throw new InvalidOperationException("Apenas chamados em Análise ou Aguardando Usuário podem ir para Em Atendimento.");
 
         var fromStatus = ticket.Status;
-        ticket.Status = TicketStatus.IN_DEVELOPMENT;
+        ticket.Status = TicketStatus.InProgress;
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
-        AddHistory(ticket, userId, "Desenvolvimento iniciado", "O chamado foi encaminhado para desenvolvimento.", fromStatus, TicketStatus.IN_DEVELOPMENT);
+        AddHistory(ticket, userId, "Atendimento iniciado", "O chamado está em atendimento.", fromStatus, TicketStatus.InProgress);
         await _context.SaveChangesAsync();
     }
 
-    public async Task SendToTestAsync(Guid ticketId, Guid userId, Role userRole)
+    public async Task WaitForUserAsync(Guid ticketId, Guid userId, Role userRole)
     {
         var ticket = await _context.Tickets.FindAsync(ticketId);
         if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
-        if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem enviar para teste.");
-        if (ticket.Status != TicketStatus.IN_DEVELOPMENT) throw new InvalidOperationException("Apenas chamados em desenvolvimento podem ser enviados para teste.");
+        if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem alterar para aguardando usuário.");
+        if (ticket.Status != TicketStatus.InProgress) throw new InvalidOperationException("Apenas chamados Em Atendimento podem ir para Aguardando Usuário.");
 
-        ticket.Status = TicketStatus.IN_TEST;
+        var fromStatus = ticket.Status;
+        ticket.Status = TicketStatus.WaitingUser;
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
-        AddHistory(ticket, userId, "Enviado para teste", "O desenvolvimento foi concluído e o chamado está aguardando testes.", TicketStatus.IN_DEVELOPMENT, TicketStatus.IN_TEST);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task SendToHomologationAsync(Guid ticketId, Guid userId, Role userRole)
-    {
-        var ticket = await _context.Tickets.Include(t => t.TestCases).FirstOrDefaultAsync(t => t.Id == ticketId);
-        if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
-        if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem enviar para homologação.");
-        if (ticket.Status != TicketStatus.IN_TEST) throw new InvalidOperationException("O chamado deve estar em teste para ser homologado.");
-        
-        // Fase 5 rule preview:
-        if (!ticket.TestCases.Any()) throw new InvalidOperationException("Não é possível enviar para homologação sem casos de teste.");
-        if (ticket.TestCases.Any(tc => tc.Status != TestCaseStatus.Passed)) throw new InvalidOperationException("Todos os casos de teste devem estar aprovados para homologação.");
-
-        ticket.Status = TicketStatus.WAITING_HOMOLOGATION;
-        ticket.UpdatedAt = DateTimeOffset.UtcNow;
-        AddHistory(ticket, userId, "Enviado para homologação", "Testes concluídos. Aguardando homologação do usuário responsável.", TicketStatus.IN_TEST, TicketStatus.WAITING_HOMOLOGATION);
+        AddHistory(ticket, userId, "Aguardando Usuário", "O suporte solicitou informações ao usuário.", fromStatus, TicketStatus.WaitingUser);
         await _context.SaveChangesAsync();
     }
 
@@ -475,18 +449,14 @@ public class TicketService : ITicketService
         var ticket = await _context.Tickets.FindAsync(ticketId);
         if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
         
-        if (ticket.Status != TicketStatus.WAITING_HOMOLOGATION && ticket.Status != TicketStatus.ANALYZING) 
-            throw new InvalidOperationException("Apenas chamados em homologação ou análise (resolução direta) podem ser resolvidos diretamente.");
+        if (ticket.Status != TicketStatus.InProgress) 
+            throw new InvalidOperationException("Apenas chamados Em Atendimento podem ser resolvidos.");
             
-        // Se estiver em homologação, idealmente é resolvido pelo responsável
-        if (ticket.Status == TicketStatus.WAITING_HOMOLOGATION && userRole == Role.User && ticket.HomologationResponsibleUserId != userId)
-            throw new UnauthorizedAccessException("Apenas o responsável pela homologação pode resolver o chamado nesta etapa.");
-
         var fromStatus = ticket.Status;
-        ticket.Status = TicketStatus.RESOLVED;
+        ticket.Status = TicketStatus.Resolved;
         ticket.ResolvedAt = DateTimeOffset.UtcNow;
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
-        AddHistory(ticket, userId, "Chamado resolvido", "O chamado foi finalizado.", fromStatus, TicketStatus.RESOLVED);
+        AddHistory(ticket, userId, "Chamado resolvido", "O chamado foi finalizado.", fromStatus, TicketStatus.Resolved);
         await _context.SaveChangesAsync();
     }
 }

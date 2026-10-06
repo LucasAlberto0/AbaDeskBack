@@ -190,12 +190,12 @@ public class TicketsController : ControllerBase
         }
     }
 
-    [HttpPost("{id}/start-development")]
-    public async Task<IActionResult> StartDevelopment(Guid id)
+    [HttpPost("{id}/start-progress")]
+    public async Task<IActionResult> StartProgress(Guid id)
     {
         try
         {
-            await _ticketService.StartDevelopmentAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            await _ticketService.StartProgressAsync(id, GetCurrentUserId(), GetCurrentUserRole());
             return Ok();
         }
         catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
@@ -208,30 +208,12 @@ public class TicketsController : ControllerBase
         }
     }
 
-    [HttpPost("{id}/send-to-test")]
-    public async Task<IActionResult> SendToTest(Guid id)
+    [HttpPost("{id}/wait-for-user")]
+    public async Task<IActionResult> WaitForUser(Guid id)
     {
         try
         {
-            await _ticketService.SendToTestAsync(id, GetCurrentUserId(), GetCurrentUserRole());
-            return Ok();
-        }
-        catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, new { message = ex.Message });
-        }
-    }
-
-    [HttpPost("{id}/send-to-homologation")]
-    public async Task<IActionResult> SendToHomologation(Guid id)
-    {
-        try
-        {
-            await _ticketService.SendToHomologationAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            await _ticketService.WaitForUserAsync(id, GetCurrentUserId(), GetCurrentUserRole());
             return Ok();
         }
         catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)

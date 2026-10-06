@@ -24,7 +24,7 @@ public class DashboardService : IDashboardService
 
         if (userRole == Role.User)
         {
-            query = query.Where(t => t.CreatedByUserId == userId || t.HomologationResponsibleUserId == userId);
+            query = query.Where(t => t.CreatedByUserId == userId);
         }
 
         var allTickets = await query.ToListAsync();
@@ -32,27 +32,24 @@ public class DashboardService : IDashboardService
         var summary = new DashboardSummaryResponse
         {
             TotalTickets = allTickets.Count,
-            OpenTickets = userRole == Role.User ? allTickets.Count(t => t.Status == TicketStatus.NEW || t.Status == TicketStatus.ANALYZING) : allTickets.Count(t => t.Status == TicketStatus.NEW),
-            InProgressTickets = allTickets.Count(t => t.Status == TicketStatus.IN_DEVELOPMENT || t.Status == TicketStatus.IN_TEST),
-            InAnalysisTickets = allTickets.Count(t => t.Status == TicketStatus.ANALYZING),
-            InDevelopmentTickets = allTickets.Count(t => t.Status == TicketStatus.IN_DEVELOPMENT),
-            InTestTickets = allTickets.Count(t => t.Status == TicketStatus.IN_TEST),
-            WaitingHomologationTickets = allTickets.Count(t => t.Status == TicketStatus.WAITING_HOMOLOGATION),
-            ResolvedTickets = allTickets.Count(t => t.Status == TicketStatus.RESOLVED),
-            ResolutionRate = allTickets.Count > 0 ? Math.Round((double)allTickets.Count(t => t.Status == TicketStatus.RESOLVED) / allTickets.Count * 100, 1) : 0
+            OpenTickets = allTickets.Count(t => t.Status == TicketStatus.Open),
+            InProgressTickets = allTickets.Count(t => t.Status == TicketStatus.InProgress),
+            InAnalysisTickets = allTickets.Count(t => t.Status == TicketStatus.InAnalysis),
+            WaitingUserTickets = allTickets.Count(t => t.Status == TicketStatus.WaitingUser),
+            ResolvedTickets = allTickets.Count(t => t.Status == TicketStatus.Resolved),
+            ResolutionRate = allTickets.Count > 0 ? Math.Round((double)allTickets.Count(t => t.Status == TicketStatus.Resolved) / allTickets.Count * 100, 1) : 0
         };
 
         if (userRole == Role.User)
         {
-            summary.PendingMyAction = allTickets.Count(t => t.Status == TicketStatus.WAITING_HOMOLOGATION && t.HomologationResponsibleUserId == userId);
+            summary.PendingMyAction = allTickets.Count(t => t.Status == TicketStatus.WaitingUser);
         }
         else
         {
             summary.PendingMyAction = allTickets.Count(t => 
-                (t.Status == TicketStatus.NEW) ||
-                (t.Status == TicketStatus.ANALYZING && t.AssignedToUserId == userId) ||
-                (t.Status == TicketStatus.IN_DEVELOPMENT && t.AssignedToUserId == userId) ||
-                (t.Status == TicketStatus.IN_TEST && t.AssignedToUserId == userId)
+                (t.Status == TicketStatus.Open) ||
+                (t.Status == TicketStatus.InAnalysis && t.AssignedToUserId == userId) ||
+                (t.Status == TicketStatus.InProgress && t.AssignedToUserId == userId)
             );
         }
 

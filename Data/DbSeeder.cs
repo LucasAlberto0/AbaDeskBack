@@ -52,33 +52,33 @@ public class DbSeeder
 
         var tickets = new List<Ticket>
         {
-            // Ticket 1 - NEW
+            // Ticket 1 - Open
             new Ticket
             {
                 ProtocolNumber = "1001", Title = "Falha no login do ERP", Description = "Não consigo logar no ERP com minha senha.",
                 CompanyUnit = "Matriz", Department = "Financeiro", SystemName = "ERP", Category = Category.Bug, Priority = Priority.High,
-                Status = TicketStatus.NEW, CreatedByUserId = user1.Id, HomologationResponsibleUserId = user1.Id
+                Status = TicketStatus.Open, CreatedByUserId = user1.Id
             },
-            // Ticket 2 - ANALYZING
+            // Ticket 2 - InAnalysis
             new Ticket
             {
                 ProtocolNumber = "1002", Title = "Criar relatório de vendas", Description = "Precisamos de um relatório com as vendas mensais consolidadas.",
                 CompanyUnit = "Filial SP", Department = "Comercial", SystemName = "CRM", Category = Category.NewFeature, Priority = Priority.Medium,
-                Status = TicketStatus.ANALYZING, CreatedByUserId = user1.Id, AssignedToUserId = attendant1.Id, HomologationResponsibleUserId = user1.Id
+                Status = TicketStatus.InAnalysis, CreatedByUserId = user1.Id, AssignedToUserId = attendant1.Id
             },
-            // Ticket 3 - IN_DEVELOPMENT
+            // Ticket 3 - InProgress
             new Ticket
             {
                 ProtocolNumber = "1003", Title = "Lentidão no sistema de RH", Description = "A tela de folha de pagamento demora muito para carregar.",
                 CompanyUnit = "Matriz", Department = "RH", SystemName = "RH System", Category = Category.Question, Priority = Priority.Low,
-                Status = TicketStatus.IN_DEVELOPMENT, CreatedByUserId = admin.Id, AssignedToUserId = attendant1.Id, HomologationResponsibleUserId = admin.Id
+                Status = TicketStatus.InProgress, CreatedByUserId = admin.Id, AssignedToUserId = attendant1.Id
             },
-            // Ticket 4 - RESOLVED
+            // Ticket 4 - Resolved
             new Ticket
             {
                 ProtocolNumber = "1004", Title = "Atualizar permissão de usuário", Description = "Gostaria de solicitar acesso à pasta do servidor.",
                 CompanyUnit = "Matriz", Department = "TI", SystemName = "FileServer", Category = Category.Access, Priority = Priority.Medium,
-                Status = TicketStatus.RESOLVED, CreatedByUserId = user1.Id, AssignedToUserId = admin.Id, HomologationResponsibleUserId = user1.Id,
+                Status = TicketStatus.Resolved, CreatedByUserId = user1.Id, AssignedToUserId = admin.Id,
                 ResolvedAt = DateTimeOffset.UtcNow.AddDays(-1)
             }
         };
@@ -89,7 +89,7 @@ public class DbSeeder
         // Seed Histories for Ticket 4
         var resolvedTicket = tickets.Last();
         _context.TicketHistories.Add(new TicketHistory { TicketId = resolvedTicket.Id, UserId = user1.Id, Action = "Chamado criado", Description = "Abertura" });
-        _context.TicketHistories.Add(new TicketHistory { TicketId = resolvedTicket.Id, UserId = admin.Id, Action = "Chamado resolvido", FromStatus = TicketStatus.NEW, ToStatus = TicketStatus.RESOLVED, Description = "Acesso concedido." });
+        _context.TicketHistories.Add(new TicketHistory { TicketId = resolvedTicket.Id, UserId = admin.Id, Action = "Chamado resolvido", FromStatus = TicketStatus.Open, ToStatus = TicketStatus.Resolved, Description = "Acesso concedido." });
         
         // Seed Comment
         _context.TicketComments.Add(new TicketComment { TicketId = resolvedTicket.Id, UserId = admin.Id, Content = "O acesso já foi liberado. Pode testar?" });

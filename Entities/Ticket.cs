@@ -16,7 +16,7 @@ public class Ticket
     
     public Category Category { get; set; }
     public Priority Priority { get; set; }
-    public TicketStatus Status { get; set; } = TicketStatus.NEW;
+    public TicketStatus Status { get; set; } = TicketStatus.Open;
 
     public Guid CreatedByUserId { get; set; }
     public User? CreatedByUser { get; set; }
@@ -24,8 +24,7 @@ public class Ticket
     public Guid? AssignedToUserId { get; set; }
     public User? AssignedToUser { get; set; }
 
-    public Guid? HomologationResponsibleUserId { get; set; }
-    public User? HomologationResponsibleUser { get; set; }
+
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
@@ -33,6 +32,4 @@ public class Ticket
 
     public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
     public ICollection<TicketHistory> History { get; set; } = new List<TicketHistory>();
-    public ICollection<TestCase> TestCases { get; set; } = new List<TestCase>();
-    public ICollection<Homologation> Homologations { get; set; } = new List<Homologation>();
 }

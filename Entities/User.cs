@@ -20,6 +20,4 @@ public class User
     public ICollection<Ticket> AssignedTickets { get; set; } = new List<Ticket>();
     public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
     public ICollection<TicketHistory> History { get; set; } = new List<TicketHistory>();
-    public ICollection<TestCase> TestCases { get; set; } = new List<TestCase>();
-    public ICollection<Homologation> Homologations { get; set; } = new List<Homologation>();
 }

@@ -44,8 +44,7 @@ public interface ITicketService
 
     Task StartAnalysisAsync(Guid ticketId, Guid userId, Role userRole);
     Task AssignTicketAsync(Guid ticketId, Guid assignedToUserId, Guid userId, Role userRole);
-    Task StartDevelopmentAsync(Guid ticketId, Guid userId, Role userRole);
-    Task SendToTestAsync(Guid ticketId, Guid userId, Role userRole);
-    Task SendToHomologationAsync(Guid ticketId, Guid userId, Role userRole);
+    Task StartProgressAsync(Guid ticketId, Guid userId, Role userRole);
+    Task WaitForUserAsync(Guid ticketId, Guid userId, Role userRole);
     Task ResolveTicketAsync(Guid ticketId, Guid userId, Role userRole);
 }

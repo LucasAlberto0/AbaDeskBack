@@ -13,8 +13,6 @@ public class AppDbContext : DbContext
     public DbSet<Ticket> Tickets { get; set; } = null!;
     public DbSet<TicketHistory> TicketHistories { get; set; } = null!;
     public DbSet<TicketComment> TicketComments { get; set; } = null!;
-    public DbSet<TestCase> TestCases { get; set; } = null!;
-    public DbSet<Homologation> Homologations { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,12 +34,6 @@ public class AppDbContext : DbContext
             .HasOne(t => t.AssignedToUser)
             .WithMany(u => u.AssignedTickets)
             .HasForeignKey(t => t.AssignedToUserId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        modelBuilder.Entity<Ticket>()
-            .HasOne(t => t.HomologationResponsibleUser)
-            .WithMany()
-            .HasForeignKey(t => t.HomologationResponsibleUserId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // Ticket Indexes
@@ -84,44 +76,6 @@ public class AppDbContext : DbContext
             .HasOne(tc => tc.User)
             .WithMany(u => u.Comments)
             .HasForeignKey(tc => tc.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // TestCase Relationships
-        modelBuilder.Entity<TestCase>()
-            .HasOne(tc => tc.Ticket)
-            .WithMany(t => t.TestCases)
-            .HasForeignKey(tc => tc.TicketId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<TestCase>()
-            .HasOne(tc => tc.CreatedByUser)
-            .WithMany(u => u.TestCases)
-            .HasForeignKey(tc => tc.CreatedByUserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Homologation Relationships
-        modelBuilder.Entity<Homologation>()
-            .HasOne(h => h.Ticket)
-            .WithMany(t => t.Homologations)
-            .HasForeignKey(h => h.TicketId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Homologation>()
-            .HasOne(h => h.RequestedByUser)
-            .WithMany()
-            .HasForeignKey(h => h.RequestedByUserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<Homologation>()
-            .HasOne(h => h.ResponsibleUser)
-            .WithMany(u => u.Homologations)
-            .HasForeignKey(h => h.ResponsibleUserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<Homologation>()
-            .HasOne(h => h.DecidedByUser)
-            .WithMany()
-            .HasForeignKey(h => h.DecidedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
