@@ -88,4 +88,28 @@ public class AuthService : IAuthService
             }
         };
     }
+
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    {
+        if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+        {
+            throw new InvalidOperationException("Este e-mail já está em uso.");
+        }
+
+        var user = new User
+        {
+            Name = request.Name,
+            Email = request.Email,
+            Role = request.Role,
+            IsActive = true
+        };
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Faz o login automático após o registro
+        return await LoginAsync(new LoginRequest { Email = request.Email, Password = request.Password });
+    }
 }
