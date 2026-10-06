@@ -62,12 +62,4 @@ public class AuthController : ControllerBase
             IsActive = true
         });
     }
-
-    [HttpPost("seed")]
-    [AllowAnonymous]
-    public async Task<IActionResult> SeedAdmin()
-    {
-        await _authService.SeedInitialAdminAsync();
-        return Ok(new { message = "Admin criado com sucesso: admin@abadesk.local / admin123" });
-    }
 }

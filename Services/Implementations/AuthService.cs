@@ -88,23 +88,4 @@ public class AuthService : IAuthService
             }
         };
     }
-
-    public async Task SeedInitialAdminAsync()
-    {
-        var adminEmail = "admin@abadesk.local";
-        if (!await _context.Users.AnyAsync(u => u.Email == adminEmail))
-        {
-            var admin = new User
-            {
-                Name = "Administrador",
-                Email = adminEmail,
-                Role = Role.Admin,
-                IsActive = true
-            };
-            
-            admin.PasswordHash = _passwordHasher.HashPassword(admin, "admin123");
-            _context.Users.Add(admin);
-            await _context.SaveChangesAsync();
-        }
-    }
 }
