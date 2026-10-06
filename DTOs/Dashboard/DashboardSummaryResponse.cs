@@ -5,9 +5,15 @@ public class DashboardSummaryResponse
     public int TotalTickets { get; set; }
     public int OpenTickets { get; set; }
     public int InProgressTickets { get; set; }
+    
+    // Specific for Attendant/Admin
+    public int InAnalysisTickets { get; set; }
+    public int InDevelopmentTickets { get; set; }
+    public int InTestTickets { get; set; }
+    
     public int WaitingHomologationTickets { get; set; }
     public int ResolvedTickets { get; set; }
     
-    // Indica chamados que estão dependendo da ação do usuário logado (ex: homologação pendente, ou em dev pra ele)
     public int PendingMyAction { get; set; }
+    public double ResolutionRate { get; set; }
 }

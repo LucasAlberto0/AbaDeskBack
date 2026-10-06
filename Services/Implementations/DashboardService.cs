@@ -32,10 +32,14 @@ public class DashboardService : IDashboardService
         var summary = new DashboardSummaryResponse
         {
             TotalTickets = allTickets.Count,
-            OpenTickets = allTickets.Count(t => t.Status == TicketStatus.NEW),
-            InProgressTickets = allTickets.Count(t => t.Status == TicketStatus.ANALYZING || t.Status == TicketStatus.IN_DEVELOPMENT || t.Status == TicketStatus.IN_TEST),
+            OpenTickets = userRole == Role.User ? allTickets.Count(t => t.Status == TicketStatus.NEW || t.Status == TicketStatus.ANALYZING) : allTickets.Count(t => t.Status == TicketStatus.NEW),
+            InProgressTickets = allTickets.Count(t => t.Status == TicketStatus.IN_DEVELOPMENT || t.Status == TicketStatus.IN_TEST),
+            InAnalysisTickets = allTickets.Count(t => t.Status == TicketStatus.ANALYZING),
+            InDevelopmentTickets = allTickets.Count(t => t.Status == TicketStatus.IN_DEVELOPMENT),
+            InTestTickets = allTickets.Count(t => t.Status == TicketStatus.IN_TEST),
             WaitingHomologationTickets = allTickets.Count(t => t.Status == TicketStatus.WAITING_HOMOLOGATION),
-            ResolvedTickets = allTickets.Count(t => t.Status == TicketStatus.RESOLVED)
+            ResolvedTickets = allTickets.Count(t => t.Status == TicketStatus.RESOLVED),
+            ResolutionRate = allTickets.Count > 0 ? Math.Round((double)allTickets.Count(t => t.Status == TicketStatus.RESOLVED) / allTickets.Count * 100, 1) : 0
         };
 
         if (userRole == Role.User)
