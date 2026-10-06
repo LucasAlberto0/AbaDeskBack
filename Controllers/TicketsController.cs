@@ -152,4 +152,113 @@ public class TicketsController : ControllerBase
             return StatusCode(403, new { message = ex.Message });
         }
     }
+
+    [HttpPost("{id}/analyze")]
+    public async Task<IActionResult> StartAnalysis(Guid id)
+    {
+        try
+        {
+            await _ticketService.StartAnalysisAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            return Ok();
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/assign")]
+    public async Task<IActionResult> AssignTicket(Guid id, [FromBody] AssignTicketRequest request)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        try
+        {
+            await _ticketService.AssignTicketAsync(id, request.UserId, GetCurrentUserId(), GetCurrentUserRole());
+            return Ok();
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/start-development")]
+    public async Task<IActionResult> StartDevelopment(Guid id)
+    {
+        try
+        {
+            await _ticketService.StartDevelopmentAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            return Ok();
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/send-to-test")]
+    public async Task<IActionResult> SendToTest(Guid id)
+    {
+        try
+        {
+            await _ticketService.SendToTestAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            return Ok();
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/send-to-homologation")]
+    public async Task<IActionResult> SendToHomologation(Guid id)
+    {
+        try
+        {
+            await _ticketService.SendToHomologationAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            return Ok();
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/resolve")]
+    public async Task<IActionResult> ResolveTicket(Guid id)
+    {
+        try
+        {
+            await _ticketService.ResolveTicketAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            return Ok();
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+    }
 }
