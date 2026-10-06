@@ -67,6 +67,9 @@ public class HomologationService : IHomologationService
         if (ticket.Status != TicketStatus.WAITING_HOMOLOGATION)
             throw new InvalidOperationException("O chamado não está aguardando homologação.");
 
+        if (request.Status == HomologationStatus.Rejected && string.IsNullOrWhiteSpace(request.Observations))
+            throw new InvalidOperationException("O motivo/comentário é obrigatório ao reprovar uma homologação.");
+
         if (userRole == Role.User && ticket.HomologationResponsibleUserId != userId)
             throw new UnauthorizedAccessException("Apenas o responsável pela homologação pode registrar o parecer.");
 
