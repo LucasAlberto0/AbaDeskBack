@@ -139,10 +139,12 @@ public class TicketService : ITicketService
 
         if (!string.IsNullOrEmpty(search))
         {
+            var searchLower = search.ToLower();
             query = query.Where(t => 
-                t.Title.Contains(search) || 
-                t.ProtocolNumber.Contains(search) ||
-                t.Description.Contains(search));
+                t.Title.ToLower().Contains(searchLower) || 
+                t.ProtocolNumber.ToLower().Contains(searchLower) ||
+                t.Description.ToLower().Contains(searchLower) ||
+                (t.CreatedByUser != null && t.CreatedByUser.Name.ToLower().Contains(searchLower)));
         }
 
         var totalItems = await query.CountAsync();

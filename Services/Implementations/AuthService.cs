@@ -116,4 +116,63 @@ public class AuthService : IAuthService
         // Faz o login automático após o registro
         return await LoginAsync(new LoginRequest { Email = request.Email, Password = request.Password });
     }
+
+    public async Task<AuthResponse> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null || !user.IsActive)
+        {
+            throw new UnauthorizedAccessException("Usuário não encontrado ou inativo.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+            user.Name = request.Name;
+        if (!string.IsNullOrWhiteSpace(request.CompanyUnit))
+            user.CompanyUnit = request.CompanyUnit;
+
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+        await _context.SaveChangesAsync();
+
+        // Gerar um novo token JWT atualizado
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing"));
+        
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim("name", user.Name),
+            new Claim(ClaimTypes.Role, user.Role.ToString())
+        };
+
+        var expirationMinutes = int.Parse(_configuration["Jwt:ExpirationMinutes"] ?? "1440");
+        var expiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes);
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = expiresAt,
+            Issuer = _configuration["Jwt:Issuer"],
+            Audience = _configuration["Jwt:Audience"],
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+
+        return new AuthResponse
+        {
+            AccessToken = tokenHandler.WriteToken(token),
+            ExpiresAt = new DateTimeOffset(expiresAt),
+            User = new UserResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Role = user.Role,
+                JobTitle = user.JobTitle,
+                CompanyUnit = user.CompanyUnit,
+                IsActive = user.IsActive
+            }
+        };
+    }
 }

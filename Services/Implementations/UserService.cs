@@ -130,6 +130,9 @@ public class UserService : IUserService
         var user = await _context.Users.FindAsync(id);
         if (user == null) throw new System.Collections.Generic.KeyNotFoundException("Usuário não encontrado.");
 
+        if (user.Role == AbaDeskBack.Enums.Role.Admin) 
+            throw new InvalidOperationException("Não é possível excluir ou inativar uma conta de Administrador.");
+
         user.IsActive = !user.IsActive;
         user.UpdatedAt = DateTimeOffset.UtcNow;
 
