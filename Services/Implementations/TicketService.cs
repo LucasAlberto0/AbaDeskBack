@@ -49,6 +49,33 @@ public class TicketService : ITicketService
             throw new UnauthorizedAccessException("Suporte técnico não tem permissão para criar chamados.");
         var protocol = await GenerateProtocolNumberAsync();
 
+        string attachmentUrl = string.Empty;
+        if (!string.IsNullOrEmpty(request.AttachmentBase64))
+        {
+            try
+            {
+                var base64Data = request.AttachmentBase64.Contains(",") 
+                    ? request.AttachmentBase64.Split(',')[1] 
+                    : request.AttachmentBase64;
+                
+                var imageBytes = Convert.FromBase64String(base64Data);
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+                
+                var fileName = $"{Guid.NewGuid()}.jpg";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+                
+                await System.IO.File.WriteAllBytesAsync(filePath, imageBytes);
+                attachmentUrl = $"/uploads/{fileName}";
+            }
+            catch (Exception ex)
+            {
+                // ignore or log
+            }
+        }
+
         var ticket = new Ticket
         {
             ProtocolNumber = protocol,
@@ -60,6 +87,7 @@ public class TicketService : ITicketService
             Category = request.Category,
             Priority = request.Priority,
             Status = TicketStatus.Open,
+            AttachmentUrl = attachmentUrl,
             CreatedByUserId = userId
         };
 
@@ -220,6 +248,7 @@ public class TicketService : ITicketService
             Category = ticket.Category,
             Priority = ticket.Priority,
             Status = ticket.Status,
+            AttachmentUrl = ticket.AttachmentUrl,
             CreatedAt = ticket.CreatedAt,
             UpdatedAt = ticket.UpdatedAt,
             ResolvedAt = ticket.ResolvedAt,

@@ -13,6 +13,7 @@ public class TicketDetailsResponse
     public string CompanyUnit { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
     public string SystemName { get; set; } = string.Empty;
+    public string AttachmentUrl { get; set; } = string.Empty;
     
     public Category Category { get; set; }
     public Priority Priority { get; set; }
