@@ -2,8 +2,9 @@ using AbaDeskBack.DTOs.Comments;
 using AbaDeskBack.DTOs.Tickets;
 using AbaDeskBack.Enums;
 using AbaDeskBack.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -35,6 +36,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost]
+    [SwaggerOperation(Summary = "Criar Chamado", Description = "Cria um novo chamado técnico ou requisição. Usuários podem criar para si, admins para qualquer um.")]
     public async Task<IActionResult> CreateTicket([FromBody] CreateTicketRequest request)
     {
         if (!ModelState.IsValid)
@@ -45,6 +47,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [SwaggerOperation(Summary = "Excluir Chamado", Description = "Exclui permanentemente um chamado e seus anexos. Permissão: Admin, ou Criador do Chamado.")]
     public async Task<IActionResult> DeleteTicket(Guid id)
     {
         try
@@ -63,6 +66,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet]
+    [SwaggerOperation(Summary = "Listar Chamados", Description = "Lista todos os chamados com filtros avançados. Admins/Attendants veem tudo, Users veem os próprios.")]
     public async Task<IActionResult> GetTickets(
         [FromQuery] TicketStatus? status,
         [FromQuery] Priority? priority,
@@ -84,6 +88,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet("my")]
+    [SwaggerOperation(Summary = "Meus Chamados", Description = "Lista chamados do usuário logado (criados por ele ou atribuídos a ele).")]
     public async Task<IActionResult> GetMyTickets(
         [FromQuery] TicketStatus? status,
         [FromQuery] string? search,
@@ -97,6 +102,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [SwaggerOperation(Summary = "Detalhes do Chamado", Description = "Busca detalhes completos de um chamado.")]
     public async Task<IActionResult> GetTicketDetails(Guid id)
     {
         try
@@ -115,6 +121,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id}/comments")]
+    [SwaggerOperation(Summary = "Adicionar Comentário", Description = "Adiciona um novo comentário ao histórico do chamado.")]
     public async Task<IActionResult> AddComment(Guid id, [FromBody] CreateCommentRequest request)
     {
         if (!ModelState.IsValid)
@@ -136,6 +143,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet("{id}/comments")]
+    [SwaggerOperation(Summary = "Listar Comentários", Description = "Lista todos os comentários de um chamado específico.")]
     public async Task<IActionResult> GetComments(Guid id)
     {
         try
@@ -154,6 +162,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet("{id}/history")]
+    [SwaggerOperation(Summary = "Listar Histórico", Description = "Lista o histórico de alterações (auditoria) do chamado.")]
     public async Task<IActionResult> GetHistory(Guid id)
     {
         try
@@ -172,6 +181,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id}/analyze")]
+    [SwaggerOperation(Summary = "Iniciar Análise", Description = "Move o status do chamado para 'Em Análise'. Permissão: Admin, Suporte Técnico.")]
     public async Task<IActionResult> StartAnalysis(Guid id)
     {
         try
@@ -190,6 +200,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id}/assign")]
+    [SwaggerOperation(Summary = "Atribuir Chamado", Description = "Atribui um chamado a um usuário específico (ex: Suporte Técnico).")]
     public async Task<IActionResult> AssignTicket(Guid id, [FromBody] AssignTicketRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -209,6 +220,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id}/start-progress")]
+    [SwaggerOperation(Summary = "Iniciar Atendimento", Description = "Move o status para 'Em Progresso'. Permissão: Admin, Suporte Técnico.")]
     public async Task<IActionResult> StartProgress(Guid id)
     {
         try
@@ -227,6 +239,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id}/wait-for-user")]
+    [SwaggerOperation(Summary = "Aguardar Usuário", Description = "Move o status para 'Aguardando Usuário' quando necessita de informações externas.")]
     public async Task<IActionResult> WaitForUser(Guid id)
     {
         try
@@ -245,6 +258,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id}/resolve")]
+    [SwaggerOperation(Summary = "Resolver Chamado", Description = "Move o status para 'Resolvido'. Permissão: Admin, Suporte Técnico.")]
     public async Task<IActionResult> ResolveTicket(Guid id)
     {
         try

@@ -2,6 +2,7 @@ using AbaDeskBack.DTOs.Users;
 using AbaDeskBack.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -21,6 +22,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
+    [SwaggerOperation(Summary = "Listar Usuários", Description = "Lista todos os usuários cadastrados com paginação e busca por nome/email.")]
     public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var response = await _userService.GetUsersAsync(search, page, pageSize);
@@ -28,6 +30,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [SwaggerOperation(Summary = "Buscar Usuário", Description = "Busca os detalhes de um usuário específico pelo seu ID.")]
     public async Task<IActionResult> GetUserById(Guid id)
     {
         try
@@ -42,6 +45,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
+    [SwaggerOperation(Summary = "Criar Usuário", Description = "Cria manualmente um novo usuário. Apenas administradores podem usar esta rota.")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -58,6 +62,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [SwaggerOperation(Summary = "Atualizar Usuário", Description = "Atualiza os dados de um usuário existente (nome, e-mail, cargo, empresa e papel).")]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -78,6 +83,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [SwaggerOperation(Summary = "Inativar Usuário", Description = "Altera o status do usuário para inativo, impedindo que ele faça login.")]
     public async Task<IActionResult> ToggleUserStatus(Guid id)
     {
         try
