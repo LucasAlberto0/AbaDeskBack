@@ -125,17 +125,28 @@ public class UserService : IUserService
         };
     }
 
-    public async Task ToggleUserStatusAsync(Guid id)
+    public async Task<string> DeleteUserAsync(Guid id)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null) throw new System.Collections.Generic.KeyNotFoundException("Usuário não encontrado.");
 
         if (user.Role == AbaDeskBack.Enums.Role.Admin) 
-            throw new InvalidOperationException("Não é possível excluir ou inativar uma conta de Administrador.");
+            throw new InvalidOperationException("Não é possível excluir a conta de um Administrador.");
 
-        user.IsActive = !user.IsActive;
-        user.UpdatedAt = DateTimeOffset.UtcNow;
+        bool hasDependencies = await _context.Tickets.AnyAsync(t => t.CreatedByUserId == id) ||
+                               await _context.TicketHistories.AnyAsync(th => th.UserId == id) ||
+                               await _context.TicketComments.AnyAsync(tc => tc.UserId == id);
 
+        if (hasDependencies)
+        {
+            user.IsActive = false;
+            user.UpdatedAt = DateTimeOffset.UtcNow;
+            await _context.SaveChangesAsync();
+            return "Usuário inativado (possui histórico no sistema e não pôde ser deletado do BD).";
+        }
+        
+        _context.Users.Remove(user);
         await _context.SaveChangesAsync();
+        return "Usuário deletado definitivamente do banco de dados.";
     }
 }

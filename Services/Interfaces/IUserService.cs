@@ -11,5 +11,5 @@ public interface IUserService
     Task<UserResponse> GetUserByIdAsync(Guid id);
     Task<UserResponse> CreateUserAsync(CreateUserRequest request);
     Task<UserResponse> UpdateUserAsync(Guid id, UpdateUserRequest request);
-    Task ToggleUserStatusAsync(Guid id);
+    Task<string> DeleteUserAsync(Guid id);
 }

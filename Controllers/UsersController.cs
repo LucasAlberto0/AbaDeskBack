@@ -88,8 +88,8 @@ public class UsersController : ControllerBase
     {
         try
         {
-            await _userService.ToggleUserStatusAsync(id);
-            return NoContent();
+            var msg = await _userService.DeleteUserAsync(id);
+            return Ok(new { message = msg });
         }
         catch (KeyNotFoundException ex)
         {
