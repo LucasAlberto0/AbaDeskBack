@@ -43,8 +43,10 @@ public class TicketService : ITicketService
         }
     }
 
-    public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, Guid userId)
+    public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, Guid userId, Role userRole)
     {
+        if (userRole == Role.Attendant)
+            throw new UnauthorizedAccessException("Suporte técnico não tem permissão para criar chamados.");
         var protocol = await GenerateProtocolNumberAsync();
 
         var ticket = new Ticket
@@ -457,6 +459,27 @@ public class TicketService : ITicketService
         ticket.ResolvedAt = DateTimeOffset.UtcNow;
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
         AddHistory(ticket, userId, "Chamado resolvido", "O chamado foi finalizado.", fromStatus, TicketStatus.Resolved);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteTicketAsync(Guid ticketId, Guid userId, Role userRole)
+    {
+        var ticket = await _context.Tickets
+            .Include(t => t.History)
+            .Include(t => t.Comments)
+            .FirstOrDefaultAsync(t => t.Id == ticketId);
+            
+        if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
+
+        if (userRole == Role.Attendant)
+            throw new UnauthorizedAccessException("Suporte técnico não tem permissão para deletar chamados.");
+        
+        if (userRole == Role.User && ticket.CreatedByUserId != userId)
+            throw new UnauthorizedAccessException("Usuários só podem deletar os próprios chamados.");
+
+        _context.TicketHistories.RemoveRange(ticket.History);
+        _context.TicketComments.RemoveRange(ticket.Comments);
+        _context.Tickets.Remove(ticket);
         await _context.SaveChangesAsync();
     }
 }

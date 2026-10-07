@@ -40,8 +40,26 @@ public class TicketsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var response = await _ticketService.CreateTicketAsync(request, GetCurrentUserId());
+        var response = await _ticketService.CreateTicketAsync(request, GetCurrentUserId(), GetCurrentUserRole());
         return CreatedAtAction(nameof(GetTicketDetails), new { id = response.Id }, response);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteTicket(Guid id)
+    {
+        try
+        {
+            await _ticketService.DeleteTicketAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
     }
 
     [HttpGet]

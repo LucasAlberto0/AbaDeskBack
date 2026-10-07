@@ -84,6 +84,8 @@ public class AuthService : IAuthService
                 Name = user.Name,
                 Email = user.Email,
                 Role = user.Role,
+                JobTitle = user.JobTitle,
+                CompanyUnit = user.CompanyUnit,
                 IsActive = user.IsActive
             }
         };
@@ -101,6 +103,8 @@ public class AuthService : IAuthService
             Name = request.Name,
             Email = request.Email,
             Role = request.Role,
+            JobTitle = request.JobTitle,
+            CompanyUnit = request.CompanyUnit,
             IsActive = true
         };
 

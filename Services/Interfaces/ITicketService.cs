@@ -11,7 +11,7 @@ namespace AbaDeskBack.Services.Interfaces;
 
 public interface ITicketService
 {
-    Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, Guid userId);
+    Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request, Guid userId, Role userRole);
     
     Task<PagedResult<TicketListItemResponse>> GetTicketsAsync(
         Guid userId,
@@ -47,4 +47,5 @@ public interface ITicketService
     Task StartProgressAsync(Guid ticketId, Guid userId, Role userRole);
     Task WaitForUserAsync(Guid ticketId, Guid userId, Role userRole);
     Task ResolveTicketAsync(Guid ticketId, Guid userId, Role userRole);
+    Task DeleteTicketAsync(Guid ticketId, Guid userId, Role userRole);
 }

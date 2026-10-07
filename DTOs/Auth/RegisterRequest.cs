@@ -18,4 +18,7 @@ public class RegisterRequest
 
     [Required]
     public Role Role { get; set; } = Role.User;
+
+    public string JobTitle { get; set; } = string.Empty;
+    public string CompanyUnit { get; set; } = string.Empty;
 }
