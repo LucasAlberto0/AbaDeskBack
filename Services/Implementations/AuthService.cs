@@ -113,7 +113,6 @@ public class AuthService : IAuthService
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        // Faz o login automático após o registro
         return await LoginAsync(new LoginRequest { Email = request.Email, Password = request.Password });
     }
 
@@ -133,7 +132,6 @@ public class AuthService : IAuthService
         user.UpdatedAt = DateTimeOffset.UtcNow;
         await _context.SaveChangesAsync();
 
-        // Gerar um novo token JWT atualizado
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing"));
         

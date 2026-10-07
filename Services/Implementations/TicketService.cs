@@ -26,7 +26,6 @@ public class TicketService : ITicketService
 
     private async Task<string> GenerateProtocolNumberAsync()
     {
-        // Simple logic for MVP: get max protocol number and increment
         var maxProtocol = await _context.Tickets.MaxAsync(t => (string?)t.ProtocolNumber);
         if (string.IsNullOrEmpty(maxProtocol) || !int.TryParse(maxProtocol, out int currentMax))
         {
@@ -72,7 +71,6 @@ public class TicketService : ITicketService
             }
             catch (Exception ex)
             {
-                // ignore or log
             }
         }
 

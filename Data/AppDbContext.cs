@@ -18,12 +18,10 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // User - Email unique index
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
 
-        // Ticket Relationships
         modelBuilder.Entity<Ticket>()
             .HasOne(t => t.CreatedByUser)
             .WithMany(u => u.CreatedTickets)
@@ -36,7 +34,6 @@ public class AppDbContext : DbContext
             .HasForeignKey(t => t.AssignedToUserId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // Ticket Indexes
         modelBuilder.Entity<Ticket>()
             .HasIndex(t => t.Status);
         modelBuilder.Entity<Ticket>()
@@ -52,7 +49,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Ticket>()
             .HasIndex(t => t.SystemName);
 
-        // TicketHistory Relationships
         modelBuilder.Entity<TicketHistory>()
             .HasOne(th => th.Ticket)
             .WithMany(t => t.History)
@@ -65,7 +61,6 @@ public class AppDbContext : DbContext
             .HasForeignKey(th => th.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // TicketComment Relationships
         modelBuilder.Entity<TicketComment>()
             .HasOne(tc => tc.Ticket)
             .WithMany(t => t.Comments)
