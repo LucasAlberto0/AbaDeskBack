@@ -4,6 +4,8 @@ using AbaDeskBack.Enums;
 using AbaDeskBack.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using AbaDeskBack.Hubs;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Security.Claims;
@@ -17,10 +19,12 @@ namespace AbaDeskBack.Controllers;
 public class TicketsController : ControllerBase
 {
     private readonly ITicketService _ticketService;
+    private readonly IHubContext<TicketHub> _hubContext;
 
-    public TicketsController(ITicketService ticketService)
+    public TicketsController(ITicketService ticketService, IHubContext<TicketHub> hubContext)
     {
         _ticketService = ticketService;
+        _hubContext = hubContext;
     }
 
     private Guid GetCurrentUserId()
@@ -130,6 +134,7 @@ public class TicketsController : ControllerBase
         try
         {
             var response = await _ticketService.AddCommentAsync(id, request, GetCurrentUserId());
+            await _hubContext.Clients.Group($"Ticket_{id}").SendAsync("ReceiveComment", response);
             return Ok(response);
         }
         catch (KeyNotFoundException ex)
