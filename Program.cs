@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.FileProviders;
 using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -107,16 +106,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-if (!Directory.Exists(uploadsPath))
-    Directory.CreateDirectory(uploadsPath);
-
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(uploadsPath),
-    RequestPath = "/uploads"
-});
-
 app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
@@ -131,6 +120,7 @@ using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
     await seeder.SeedAsync();
+    await seeder.MigrateDiskAttachmentsAsync();
 }
 
 app.Run();

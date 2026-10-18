@@ -14,6 +14,9 @@ public class Ticket
     public string Department { get; set; } = string.Empty;
     public string SystemName { get; set; } = string.Empty;
     public string AttachmentUrl { get; set; } = string.Empty;
+    public byte[]? AttachmentData { get; set; }
+    public string? AttachmentContentType { get; set; }
+    public string? AttachmentFileName { get; set; }
     public string? Solution { get; set; }
     
     public Category Category { get; set; }

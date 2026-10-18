@@ -124,6 +124,18 @@ public class TicketsController : ControllerBase
         }
     }
 
+    [HttpGet("{id}/attachment")]
+    [AllowAnonymous]
+    [SwaggerOperation(Summary = "Obter Anexo do Chamado", Description = "Retorna o arquivo binário do anexo do chamado diretamente do banco de dados.")]
+    public async Task<IActionResult> GetAttachment(Guid id)
+    {
+        var attachment = await _ticketService.GetAttachmentAsync(id);
+        if (attachment == null || attachment.Data == null || attachment.Data.Length == 0)
+            return NotFound(new { message = "Anexo não encontrado." });
+
+        return File(attachment.Data, attachment.ContentType, attachment.FileName);
+    }
+
     [HttpPost("{id}/comments")]
     [SwaggerOperation(Summary = "Adicionar Comentário", Description = "Adiciona um novo comentário ao histórico do chamado.")]
     public async Task<IActionResult> AddComment(Guid id, [FromBody] CreateCommentRequest request)

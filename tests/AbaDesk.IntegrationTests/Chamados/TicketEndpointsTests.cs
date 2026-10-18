@@ -105,4 +105,35 @@ public class TicketEndpointsTests : IClassFixture<AbaDeskWebApplicationFactory>
         var updated = await getResponse.Content.ReadFromJsonAsync<TicketResponse>(AuthHelper.JsonOptions);
         updated!.Status.Should().Be(TicketStatus.InAnalysis);
     }
+
+    [Fact]
+    public async Task DeveRetornarAnexoBinarioDoChamadoCriadoDiretoDoBanco()
+    {
+        var userClient = await AuthHelper.CreateAuthenticatedClientAsync(_factory, "usuario1@abadesk.local", "senha123");
+        const string base64Data = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+        var createResponse = await userClient.PostAsJsonAsync("/api/tickets", new CreateTicketRequest
+        {
+            Title = "Chamado com anexo no banco",
+            Description = "Validando extracao de arquivo binario",
+            Category = Category.Bug,
+            Priority = Priority.High,
+            CompanyUnit = "Matriz",
+            Department = "TI",
+            SystemName = "Portal",
+            AttachmentBase64 = $"data:image/png;base64,{base64Data}"
+        });
+
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<TicketResponse>(AuthHelper.JsonOptions);
+
+        var anonymousClient = _factory.CreateClient();
+        var attachmentResponse = await anonymousClient.GetAsync($"/api/tickets/{created!.Id}/attachment");
+
+        attachmentResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        attachmentResponse.Content.Headers.ContentType!.MediaType.Should().Be("image/png");
+
+        var bytes = await attachmentResponse.Content.ReadAsByteArrayAsync();
+        bytes.Should().Equal(Convert.FromBase64String(base64Data));
+    }
 }

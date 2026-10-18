@@ -88,4 +88,38 @@ public class DbSeeder
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task MigrateDiskAttachmentsAsync()
+    {
+        var ticketsWithDiskAttachments = await _context.Tickets
+            .Where(t => t.AttachmentData == null && !string.IsNullOrEmpty(t.AttachmentUrl))
+            .ToListAsync();
+
+        if (!ticketsWithDiskAttachments.Any())
+            return;
+
+        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+        var modified = false;
+
+        foreach (var ticket in ticketsWithDiskAttachments)
+        {
+            var fileName = Path.GetFileName(ticket.AttachmentUrl);
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            if (System.IO.File.Exists(filePath))
+            {
+                var bytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                ticket.AttachmentData = bytes;
+                ticket.AttachmentContentType = fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
+                ticket.AttachmentFileName = fileName;
+                ticket.AttachmentUrl = $"/api/tickets/{ticket.Id}/attachment";
+                modified = true;
+            }
+        }
+
+        if (modified)
+        {
+            await _context.SaveChangesAsync();
+        }
+    }
 }

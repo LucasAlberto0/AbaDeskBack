@@ -49,4 +49,5 @@ public interface ITicketService
     Task ResolveTicketAsync(Guid ticketId, ResolveTicketRequest request, Guid userId, Role userRole);
     Task ReopenTicketAsync(Guid ticketId, ReopenTicketRequest request, Guid userId, Role userRole);
     Task DeleteTicketAsync(Guid ticketId, Guid userId, Role userRole);
+    Task<TicketAttachmentDto?> GetAttachmentAsync(Guid ticketId);
 }

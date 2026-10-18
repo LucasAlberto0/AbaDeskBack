@@ -73,6 +73,15 @@ namespace AbaDeskBack.Migrations
                     b.Property<Guid?>("AssignedToUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AttachmentContentType")
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("AttachmentData")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("AttachmentFileName")
+                        .HasColumnType("text");
+
                     b.Property<string>("AttachmentUrl")
                         .IsRequired()
                         .HasColumnType("text");

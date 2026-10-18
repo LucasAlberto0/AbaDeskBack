@@ -50,26 +50,40 @@ public class TicketService : ITicketService
             throw new UnauthorizedAccessException("Suporte técnico não tem permissão para criar chamados.");
         var protocol = await GenerateProtocolNumberAsync();
 
-        string attachmentUrl = string.Empty;
+        byte[]? attachmentData = null;
+        string? attachmentContentType = null;
+        string? attachmentFileName = null;
+
         if (!string.IsNullOrEmpty(request.AttachmentBase64))
         {
             try
             {
-                var base64Data = request.AttachmentBase64.Contains(",") 
-                    ? request.AttachmentBase64.Split(',')[1] 
-                    : request.AttachmentBase64;
-                
-                var imageBytes = Convert.FromBase64String(base64Data);
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                
-                if (!Directory.Exists(uploadsFolder))
-                    Directory.CreateDirectory(uploadsFolder);
-                
-                var fileName = $"{Guid.NewGuid()}.jpg";
-                var filePath = Path.Combine(uploadsFolder, fileName);
-                
-                await System.IO.File.WriteAllBytesAsync(filePath, imageBytes);
-                attachmentUrl = $"/uploads/{fileName}";
+                var base64String = request.AttachmentBase64;
+                if (base64String.Contains(","))
+                {
+                    var parts = base64String.Split(',');
+                    var header = parts[0];
+                    if (header.Contains("image/png")) attachmentContentType = "image/png";
+                    else if (header.Contains("image/webp")) attachmentContentType = "image/webp";
+                    else if (header.Contains("image/gif")) attachmentContentType = "image/gif";
+                    else attachmentContentType = "image/jpeg";
+
+                    base64String = parts[1];
+                }
+                else
+                {
+                    attachmentContentType = "image/jpeg";
+                }
+
+                attachmentData = Convert.FromBase64String(base64String);
+                var extension = attachmentContentType switch
+                {
+                    "image/png" => ".png",
+                    "image/webp" => ".webp",
+                    "image/gif" => ".gif",
+                    _ => ".jpg"
+                };
+                attachmentFileName = $"anexo-{Guid.NewGuid()}{extension}";
             }
             catch (Exception)
             {
@@ -87,9 +101,12 @@ public class TicketService : ITicketService
             Category = request.Category,
             Priority = request.Priority,
             Status = TicketStatus.Open,
-            AttachmentUrl = attachmentUrl,
+            AttachmentData = attachmentData,
+            AttachmentContentType = attachmentContentType,
+            AttachmentFileName = attachmentFileName,
             CreatedByUserId = userId
         };
+        ticket.AttachmentUrl = attachmentData != null ? $"/api/tickets/{ticket.Id}/attachment" : string.Empty;
 
         _context.Tickets.Add(ticket);
 
@@ -660,5 +677,43 @@ public class TicketService : ITicketService
         _context.TicketComments.RemoveRange(ticket.Comments);
         _context.Tickets.Remove(ticket);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<TicketAttachmentDto?> GetAttachmentAsync(Guid ticketId)
+    {
+        var ticket = await _context.Tickets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == ticketId);
+
+        if (ticket == null)
+            return null;
+
+        if (ticket.AttachmentData != null && ticket.AttachmentData.Length > 0)
+        {
+            return new TicketAttachmentDto
+            {
+                Data = ticket.AttachmentData,
+                ContentType = ticket.AttachmentContentType ?? "image/jpeg",
+                FileName = ticket.AttachmentFileName ?? "anexo.jpg"
+            };
+        }
+
+        if (!string.IsNullOrEmpty(ticket.AttachmentUrl) && ticket.AttachmentUrl.StartsWith("/uploads/"))
+        {
+            var fileName = Path.GetFileName(ticket.AttachmentUrl);
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", fileName);
+            if (File.Exists(filePath))
+            {
+                var bytes = await File.ReadAllBytesAsync(filePath);
+                return new TicketAttachmentDto
+                {
+                    Data = bytes,
+                    ContentType = fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg",
+                    FileName = fileName
+                };
+            }
+        }
+
+        return null;
     }
 }
