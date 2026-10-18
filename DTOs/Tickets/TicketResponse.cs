@@ -15,4 +15,6 @@ public class TicketResponse
     public TicketStatus Status { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
+    public DateTimeOffset? ResolvedAt { get; set; }
+    public string? Solution { get; set; }
 }

@@ -15,4 +15,6 @@ public class TicketListItemResponse
     public DateTimeOffset CreatedAt { get; set; }
     public string CreatedByName { get; set; } = string.Empty;
     public string? AssignedToName { get; set; }
+    public Guid? AssignedToUserId { get; set; }
+    public string? Solution { get; set; }
 }

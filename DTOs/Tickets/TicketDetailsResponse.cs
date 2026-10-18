@@ -22,6 +22,7 @@ public class TicketDetailsResponse
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset? ResolvedAt { get; set; }
+    public string? Solution { get; set; }
 
     public UserResponse? CreatedBy { get; set; }
     public UserResponse? AssignedTo { get; set; }
