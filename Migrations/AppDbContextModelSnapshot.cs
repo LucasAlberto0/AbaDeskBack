@@ -22,6 +22,48 @@ namespace AbaDeskBack.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("AbaDeskBack.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsRead");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("AbaDeskBack.Entities.Ticket", b =>
                 {
                     b.Property<Guid>("Id")
@@ -220,6 +262,24 @@ namespace AbaDeskBack.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("AbaDeskBack.Entities.Notification", b =>
+                {
+                    b.HasOne("AbaDeskBack.Entities.Ticket", "Ticket")
+                        .WithMany("Notifications")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("AbaDeskBack.Entities.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("AbaDeskBack.Entities.Ticket", b =>
                 {
                     b.HasOne("AbaDeskBack.Entities.User", "AssignedToUser")
@@ -281,6 +341,8 @@ namespace AbaDeskBack.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("History");
+
+                    b.Navigation("Notifications");
                 });
 
             modelBuilder.Entity("AbaDeskBack.Entities.User", b =>
@@ -292,6 +354,8 @@ namespace AbaDeskBack.Migrations
                     b.Navigation("CreatedTickets");
 
                     b.Navigation("History");
+
+                    b.Navigation("Notifications");
                 });
 #pragma warning restore 612, 618
         }

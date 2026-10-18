@@ -18,10 +18,12 @@ namespace AbaDeskBack.Services.Implementations;
 public class TicketService : ITicketService
 {
     private readonly AppDbContext _context;
+    private readonly INotificationService _notificationService;
 
-    public TicketService(AppDbContext context)
+    public TicketService(AppDbContext context, INotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
 
     private async Task<string> GenerateProtocolNumberAsync()
@@ -69,7 +71,7 @@ public class TicketService : ITicketService
                 await System.IO.File.WriteAllBytesAsync(filePath, imageBytes);
                 attachmentUrl = $"/uploads/{fileName}";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -331,6 +333,27 @@ public class TicketService : ITicketService
         
         await _context.SaveChangesAsync();
 
+        if (userId != ticket.CreatedByUserId)
+        {
+            var preview = request.Content.Length > 60 ? request.Content.Substring(0, 57) + "..." : request.Content;
+            await _notificationService.CreateNotificationAsync(
+                ticket.CreatedByUserId,
+                ticket.Id,
+                $"Nova resposta no chamado #{ticket.ProtocolNumber}",
+                $"{user.Name}: {preview}",
+                NotificationType.NewComment);
+        }
+        else if (ticket.AssignedToUserId.HasValue && userId != ticket.AssignedToUserId.Value)
+        {
+            var preview = request.Content.Length > 60 ? request.Content.Substring(0, 57) + "..." : request.Content;
+            await _notificationService.CreateNotificationAsync(
+                ticket.AssignedToUserId.Value,
+                ticket.Id,
+                $"Novo comentário no chamado #{ticket.ProtocolNumber}",
+                $"{user.Name}: {preview}",
+                NotificationType.NewComment);
+        }
+
         return new CommentResponse
         {
             Id = comment.Id,
@@ -433,6 +456,16 @@ public class TicketService : ITicketService
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
         AddHistory(ticket, userId, "Análise iniciada", "O chamado entrou em análise técnica.", fromStatus, TicketStatus.InAnalysis);
         await _context.SaveChangesAsync();
+
+        if (userId != ticket.CreatedByUserId)
+        {
+            await _notificationService.CreateNotificationAsync(
+                ticket.CreatedByUserId,
+                ticket.Id,
+                $"Chamado #{ticket.ProtocolNumber} em análise",
+                "Seu chamado entrou em fase de análise técnica.",
+                NotificationType.StatusChanged);
+        }
     }
 
     public async Task AssignTicketAsync(Guid ticketId, Guid assignedToUserId, Guid userId, Role userRole)
@@ -449,6 +482,16 @@ public class TicketService : ITicketService
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
         AddHistory(ticket, userId, "Responsável atribuído", $"O chamado foi atribuído para {assignedUser.Name}.");
         await _context.SaveChangesAsync();
+
+        if (assignedToUserId != userId)
+        {
+            await _notificationService.CreateNotificationAsync(
+                assignedToUserId,
+                ticket.Id,
+                $"Novo chamado atribuído: #{ticket.ProtocolNumber}",
+                $"Você foi designado como responsável pelo chamado \"{ticket.Title}\".",
+                NotificationType.StatusChanged);
+        }
     }
 
     public async Task StartProgressAsync(Guid ticketId, Guid userId, Role userRole, Guid? assignedToUserId = null)
@@ -480,6 +523,16 @@ public class TicketService : ITicketService
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
         AddHistory(ticket, userId, "Atendimento iniciado", $"{attendant?.Name ?? "Técnico"} assumiu o atendimento do chamado.", fromStatus, TicketStatus.InProgress);
         await _context.SaveChangesAsync();
+
+        if (userId != ticket.CreatedByUserId)
+        {
+            await _notificationService.CreateNotificationAsync(
+                ticket.CreatedByUserId,
+                ticket.Id,
+                $"Atendimento iniciado no chamado #{ticket.ProtocolNumber}",
+                $"{attendant?.Name ?? "Técnico"} iniciou o atendimento do seu chamado.",
+                NotificationType.StatusChanged);
+        }
     }
 
     public async Task WaitForUserAsync(Guid ticketId, Guid userId, Role userRole)
@@ -495,6 +548,16 @@ public class TicketService : ITicketService
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
         AddHistory(ticket, userId, "Aguardando Usuário", "O suporte solicitou informações ao usuário.", fromStatus, TicketStatus.WaitingUser);
         await _context.SaveChangesAsync();
+
+        if (userId != ticket.CreatedByUserId)
+        {
+            await _notificationService.CreateNotificationAsync(
+                ticket.CreatedByUserId,
+                ticket.Id,
+                $"Informações solicitadas no chamado #{ticket.ProtocolNumber}",
+                "O suporte técnico está aguardando suas informações para dar continuidade.",
+                NotificationType.InformationRequested);
+        }
     }
 
     public async Task ResolveTicketAsync(Guid ticketId, ResolveTicketRequest request, Guid userId, Role userRole)
@@ -519,6 +582,16 @@ public class TicketService : ITicketService
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
         AddHistory(ticket, userId, "Chamado resolvido", $"Solução registrada: {ticket.Solution}", fromStatus, TicketStatus.Resolved);
         await _context.SaveChangesAsync();
+
+        if (userId != ticket.CreatedByUserId)
+        {
+            await _notificationService.CreateNotificationAsync(
+                ticket.CreatedByUserId,
+                ticket.Id,
+                $"Chamado #{ticket.ProtocolNumber} resolvido",
+                $"Solução: {ticket.Solution}",
+                NotificationType.TicketResolved);
+        }
     }
 
     public async Task ReopenTicketAsync(Guid ticketId, ReopenTicketRequest request, Guid userId, Role userRole)
@@ -546,6 +619,26 @@ public class TicketService : ITicketService
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
         AddHistory(ticket, userId, "Chamado reaberto", $"Reaberto por {user?.Name ?? "Usuário"}. Justificativa: {request.Justification.Trim()}", fromStatus, targetStatus);
         await _context.SaveChangesAsync();
+
+        if (ticket.AssignedToUserId.HasValue && userId != ticket.AssignedToUserId.Value)
+        {
+            await _notificationService.CreateNotificationAsync(
+                ticket.AssignedToUserId.Value,
+                ticket.Id,
+                $"Chamado #{ticket.ProtocolNumber} reaberto",
+                $"{user?.Name ?? "Usuário"} reabriu o chamado com justificativa.",
+                NotificationType.TicketReopened);
+        }
+
+        if (userId != ticket.CreatedByUserId)
+        {
+            await _notificationService.CreateNotificationAsync(
+                ticket.CreatedByUserId,
+                ticket.Id,
+                $"Chamado #{ticket.ProtocolNumber} reaberto",
+                $"{user?.Name ?? "O suporte"} reabriu seu chamado.",
+                NotificationType.TicketReopened);
+        }
     }
 
     public async Task DeleteTicketAsync(Guid ticketId, Guid userId, Role userRole)

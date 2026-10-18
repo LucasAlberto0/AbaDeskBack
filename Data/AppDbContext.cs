@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Ticket> Tickets { get; set; } = null!;
     public DbSet<TicketHistory> TicketHistories { get; set; } = null!;
     public DbSet<TicketComment> TicketComments { get; set; } = null!;
+    public DbSet<Notification> Notifications { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,5 +73,24 @@ public class AppDbContext : DbContext
             .WithMany(u => u.Comments)
             .HasForeignKey(tc => tc.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany(u => u.Notifications)
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.Ticket)
+            .WithMany(t => t.Notifications)
+            .HasForeignKey(n => n.TicketId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => n.UserId);
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => n.IsRead);
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => n.CreatedAt);
     }
 }

@@ -34,4 +34,5 @@ public class Ticket
 
     public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
     public ICollection<TicketHistory> History { get; set; } = new List<TicketHistory>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }
