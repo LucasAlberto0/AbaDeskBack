@@ -7,7 +7,7 @@ namespace AbaDeskBack.Entities;
 public class Ticket
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public string ProtocolNumber { get; set; } = string.Empty; // e.g. 1042
+    public string ProtocolNumber { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string CompanyUnit { get; set; } = string.Empty;

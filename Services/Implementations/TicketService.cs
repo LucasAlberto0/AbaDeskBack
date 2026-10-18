@@ -212,7 +212,7 @@ public class TicketService : ITicketService
     {
         return await GetTicketsAsync(
             userId: userId, 
-            userRole: Role.User, // Force Role.User logic to show only their tickets
+            userRole: Role.User,
             status: status, 
             search: search, 
             page: page, 

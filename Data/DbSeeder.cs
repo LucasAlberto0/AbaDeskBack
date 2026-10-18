@@ -24,7 +24,7 @@ public class DbSeeder
     {
         if (await _context.Users.AnyAsync())
         {
-            return; // Already seeded
+            return;
         }
 
         var users = new List<User>
