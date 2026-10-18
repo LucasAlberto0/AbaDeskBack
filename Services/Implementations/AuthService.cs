@@ -124,8 +124,20 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Usuário não encontrado ou inativo.");
         }
 
+        if (user.Role == Role.Admin)
+        {
+            throw new InvalidOperationException("Contas de administrador não podem modificar seus dados de perfil nesta tela.");
+        }
+
+        if (user.Role == Role.Attendant && request.JobTitle != null && request.JobTitle != user.JobTitle)
+        {
+            throw new InvalidOperationException("Contas de suporte técnico não podem alterar o cargo.");
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Name))
             user.Name = request.Name;
+        if (user.Role != Role.Attendant && request.JobTitle != null)
+            user.JobTitle = request.JobTitle;
         if (!string.IsNullOrWhiteSpace(request.CompanyUnit))
             user.CompanyUnit = request.CompanyUnit;
 
