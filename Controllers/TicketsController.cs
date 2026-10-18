@@ -225,12 +225,12 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id}/start-progress")]
-    [SwaggerOperation(Summary = "Iniciar Atendimento", Description = "Move o status para 'Em Progresso'. Permissão: Admin, Suporte Técnico.")]
-    public async Task<IActionResult> StartProgress(Guid id)
+    [SwaggerOperation(Summary = "Iniciar Atendimento", Description = "Move o status para 'Em Progresso' e vincula o responsável automaticamente. Permissão: Admin, Suporte Técnico.")]
+    public async Task<IActionResult> StartProgress(Guid id, [FromBody] StartProgressRequest? request = null)
     {
         try
         {
-            await _ticketService.StartProgressAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            await _ticketService.StartProgressAsync(id, GetCurrentUserId(), GetCurrentUserRole(), request?.AssignedToUserId);
             return Ok();
         }
         catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
@@ -263,12 +263,37 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id}/resolve")]
-    [SwaggerOperation(Summary = "Resolver Chamado", Description = "Move o status para 'Resolvido'. Permissão: Admin, Suporte Técnico.")]
-    public async Task<IActionResult> ResolveTicket(Guid id)
+    [SwaggerOperation(Summary = "Resolver Chamado", Description = "Move o status para 'Resolvido' exigindo registro da solução. Permissão: Admin, Suporte Técnico.")]
+    public async Task<IActionResult> ResolveTicket(Guid id, [FromBody] ResolveTicketRequest request)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         try
         {
-            await _ticketService.ResolveTicketAsync(id, GetCurrentUserId(), GetCurrentUserRole());
+            await _ticketService.ResolveTicketAsync(id, request, GetCurrentUserId(), GetCurrentUserRole());
+            return Ok();
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/reopen")]
+    [SwaggerOperation(Summary = "Reabrir Chamado", Description = "Reabre um chamado resolvido exigindo justificativa.")]
+    public async Task<IActionResult> ReopenTicket(Guid id, [FromBody] ReopenTicketRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            await _ticketService.ReopenTicketAsync(id, request, GetCurrentUserId(), GetCurrentUserRole());
             return Ok();
         }
         catch (Exception ex) when (ex is KeyNotFoundException || ex is InvalidOperationException)

@@ -189,7 +189,9 @@ public class TicketService : ITicketService
                 Status = t.Status,
                 CreatedAt = t.CreatedAt,
                 CreatedByName = t.CreatedByUser!.Name,
-                AssignedToName = t.AssignedToUser != null ? t.AssignedToUser.Name : null
+                AssignedToName = t.AssignedToUser != null ? t.AssignedToUser.Name : null,
+                AssignedToUserId = t.AssignedToUserId,
+                Solution = t.Solution
             })
             .ToListAsync();
 
@@ -250,6 +252,7 @@ public class TicketService : ITicketService
             CreatedAt = ticket.CreatedAt,
             UpdatedAt = ticket.UpdatedAt,
             ResolvedAt = ticket.ResolvedAt,
+            Solution = ticket.Solution,
             CreatedBy = new UserResponse
             {
                 Id = ticket.CreatedByUser!.Id,
@@ -422,12 +425,13 @@ public class TicketService : ITicketService
     {
         var ticket = await _context.Tickets.FindAsync(ticketId);
         if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
-        if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem iniciar análise.");
-        if (ticket.Status != TicketStatus.Open) throw new InvalidOperationException("O chamado não está no status Aberto.");
+        if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não possuem permissão para iniciar análise de chamados.");
+        if (ticket.Status != TicketStatus.Open) throw new InvalidOperationException($"Transição inválida: apenas chamados com status Aberto podem entrar em análise (status atual: {ticket.Status}).");
 
+        var fromStatus = ticket.Status;
         ticket.Status = TicketStatus.InAnalysis;
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
-        AddHistory(ticket, userId, "Análise iniciada", "O chamado entrou em análise.", TicketStatus.Open, TicketStatus.InAnalysis);
+        AddHistory(ticket, userId, "Análise iniciada", "O chamado entrou em análise técnica.", fromStatus, TicketStatus.InAnalysis);
         await _context.SaveChangesAsync();
     }
 
@@ -438,7 +442,8 @@ public class TicketService : ITicketService
         if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem atribuir chamados.");
 
         var assignedUser = await _context.Users.FindAsync(assignedToUserId);
-        if (assignedUser == null || assignedUser.Role == Role.User) throw new InvalidOperationException("Usuário atribuído inválido.");
+        if (assignedUser == null || assignedUser.Role == Role.User || !assignedUser.IsActive) 
+            throw new InvalidOperationException("Usuário atribuído inválido.");
 
         ticket.AssignedToUserId = assignedToUserId;
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
@@ -446,18 +451,34 @@ public class TicketService : ITicketService
         await _context.SaveChangesAsync();
     }
 
-    public async Task StartProgressAsync(Guid ticketId, Guid userId, Role userRole)
+    public async Task StartProgressAsync(Guid ticketId, Guid userId, Role userRole, Guid? assignedToUserId = null)
     {
         var ticket = await _context.Tickets.FindAsync(ticketId);
         if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
         if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem iniciar o atendimento.");
-        if (ticket.Status != TicketStatus.InAnalysis && ticket.Status != TicketStatus.WaitingUser) 
-            throw new InvalidOperationException("Apenas chamados em Análise ou Aguardando Usuário podem ir para Em Atendimento.");
+        if (ticket.Status != TicketStatus.Open && ticket.Status != TicketStatus.InAnalysis && ticket.Status != TicketStatus.WaitingUser) 
+            throw new InvalidOperationException($"Transição inválida: chamados com status {ticket.Status} não podem ser movidos para Em Atendimento.");
 
+        if (assignedToUserId.HasValue)
+        {
+            var targetUser = await _context.Users.FindAsync(assignedToUserId.Value);
+            if (targetUser == null || targetUser.Role == Role.User || !targetUser.IsActive)
+                throw new InvalidOperationException("O responsável designado deve ser um técnico ou administrador ativo.");
+            ticket.AssignedToUserId = assignedToUserId.Value;
+        }
+        else if (!ticket.AssignedToUserId.HasValue)
+        {
+            ticket.AssignedToUserId = userId;
+        }
+
+        if (!ticket.AssignedToUserId.HasValue)
+            throw new InvalidOperationException("Não é permitido mover um chamado para atendimento sem um responsável atribuído.");
+
+        var attendant = await _context.Users.FindAsync(ticket.AssignedToUserId.Value);
         var fromStatus = ticket.Status;
         ticket.Status = TicketStatus.InProgress;
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
-        AddHistory(ticket, userId, "Atendimento iniciado", "O chamado está em atendimento.", fromStatus, TicketStatus.InProgress);
+        AddHistory(ticket, userId, "Atendimento iniciado", $"{attendant?.Name ?? "Técnico"} assumiu o atendimento do chamado.", fromStatus, TicketStatus.InProgress);
         await _context.SaveChangesAsync();
     }
 
@@ -466,7 +487,8 @@ public class TicketService : ITicketService
         var ticket = await _context.Tickets.FindAsync(ticketId);
         if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
         if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem alterar para aguardando usuário.");
-        if (ticket.Status != TicketStatus.InProgress) throw new InvalidOperationException("Apenas chamados Em Atendimento podem ir para Aguardando Usuário.");
+        if (ticket.Status != TicketStatus.InProgress) 
+            throw new InvalidOperationException($"Transição inválida: apenas chamados Em Atendimento podem ir para Aguardando Usuário (status atual: {ticket.Status}).");
 
         var fromStatus = ticket.Status;
         ticket.Status = TicketStatus.WaitingUser;
@@ -475,19 +497,54 @@ public class TicketService : ITicketService
         await _context.SaveChangesAsync();
     }
 
-    public async Task ResolveTicketAsync(Guid ticketId, Guid userId, Role userRole)
+    public async Task ResolveTicketAsync(Guid ticketId, ResolveTicketRequest request, Guid userId, Role userRole)
+    {
+        var ticket = await _context.Tickets.FindAsync(ticketId);
+        if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
+        if (userRole == Role.User) throw new UnauthorizedAccessException("Usuários não podem resolver chamados.");
+        
+        if (ticket.Status != TicketStatus.InProgress) 
+            throw new InvalidOperationException($"Transição inválida: apenas chamados Em Atendimento podem ser resolvidos (status atual: {ticket.Status}).");
+
+        if (!ticket.AssignedToUserId.HasValue)
+            throw new InvalidOperationException("O chamado precisa ter um responsável atribuído para ser finalizado.");
+
+        if (string.IsNullOrWhiteSpace(request?.Solution))
+            throw new InvalidOperationException("É obrigatório registrar a solução aplicada para resolver o chamado.");
+
+        var fromStatus = ticket.Status;
+        ticket.Status = TicketStatus.Resolved;
+        ticket.Solution = request.Solution.Trim();
+        ticket.ResolvedAt = DateTimeOffset.UtcNow;
+        ticket.UpdatedAt = DateTimeOffset.UtcNow;
+        AddHistory(ticket, userId, "Chamado resolvido", $"Solução registrada: {ticket.Solution}", fromStatus, TicketStatus.Resolved);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task ReopenTicketAsync(Guid ticketId, ReopenTicketRequest request, Guid userId, Role userRole)
     {
         var ticket = await _context.Tickets.FindAsync(ticketId);
         if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
         
-        if (ticket.Status != TicketStatus.InProgress) 
-            throw new InvalidOperationException("Apenas chamados Em Atendimento podem ser resolvidos.");
-            
+        if (ticket.Status != TicketStatus.Resolved) 
+            throw new InvalidOperationException($"Transição inválida: apenas chamados Resolvidos podem ser reabertos (status atual: {ticket.Status}).");
+
+        if (string.IsNullOrWhiteSpace(request?.Justification))
+            throw new InvalidOperationException("É obrigatório informar uma justificativa para reabrir um chamado resolvido.");
+
+        var targetStatus = request.TargetStatus == TicketStatus.InProgress ? TicketStatus.InProgress : TicketStatus.Open;
+
+        if (targetStatus == TicketStatus.InProgress && !ticket.AssignedToUserId.HasValue)
+        {
+            ticket.AssignedToUserId = userId;
+        }
+
+        var user = await _context.Users.FindAsync(userId);
         var fromStatus = ticket.Status;
-        ticket.Status = TicketStatus.Resolved;
-        ticket.ResolvedAt = DateTimeOffset.UtcNow;
+        ticket.Status = targetStatus;
+        ticket.ResolvedAt = null;
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
-        AddHistory(ticket, userId, "Chamado resolvido", "O chamado foi finalizado.", fromStatus, TicketStatus.Resolved);
+        AddHistory(ticket, userId, "Chamado reaberto", $"Reaberto por {user?.Name ?? "Usuário"}. Justificativa: {request.Justification.Trim()}", fromStatus, targetStatus);
         await _context.SaveChangesAsync();
     }
 
@@ -500,8 +557,8 @@ public class TicketService : ITicketService
             
         if (ticket == null) throw new KeyNotFoundException("Chamado não encontrado.");
 
-        if (userRole == Role.Attendant)
-            throw new UnauthorizedAccessException("Suporte técnico não tem permissão para deletar chamados.");
+        if (userRole == Role.Attendant && ticket.Status != TicketStatus.Resolved)
+            throw new UnauthorizedAccessException("O suporte técnico só possui permissão para excluir chamados após serem solucionados/resolvidos.");
         
         if (userRole == Role.User && ticket.CreatedByUserId != userId)
             throw new UnauthorizedAccessException("Usuários só podem deletar os próprios chamados.");
