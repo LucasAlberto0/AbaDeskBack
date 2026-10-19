@@ -470,8 +470,13 @@ public class TicketService : ITicketService
 
         var fromStatus = ticket.Status;
         ticket.Status = TicketStatus.InAnalysis;
+        if (!ticket.AssignedToUserId.HasValue)
+        {
+            ticket.AssignedToUserId = userId;
+        }
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
-        AddHistory(ticket, userId, "Análise iniciada", "O chamado entrou em análise técnica.", fromStatus, TicketStatus.InAnalysis);
+        var attendant = await _context.Users.FindAsync(ticket.AssignedToUserId.Value);
+        AddHistory(ticket, userId, "Análise iniciada", $"{attendant?.Name ?? "Técnico"} iniciou a análise técnica do chamado.", fromStatus, TicketStatus.InAnalysis);
         await _context.SaveChangesAsync();
 
         if (userId != ticket.CreatedByUserId)
@@ -480,7 +485,7 @@ public class TicketService : ITicketService
                 ticket.CreatedByUserId,
                 ticket.Id,
                 $"Chamado #{ticket.ProtocolNumber} em análise",
-                "Seu chamado entrou em fase de análise técnica.",
+                $"{attendant?.Name ?? "Um técnico"} iniciou a análise técnica do seu chamado.",
                 NotificationType.StatusChanged);
         }
     }
