@@ -145,6 +145,42 @@ public class TicketServiceTests
     }
 
     [Fact]
+    public async Task DeveIniciarAnaliseDeChamadoPorAdminEAtribuirAdminComoResponsavel()
+    {
+        using var context = CreateDbContext();
+        var creator = new User { Id = Guid.NewGuid(), Name = "Criador", Email = "criador@teste.com", Role = Role.User, IsActive = true };
+        var admin = new User { Id = Guid.NewGuid(), Name = "Administrador", Email = "admin@teste.com", Role = Role.Admin, IsActive = true };
+        var ticket = new Ticket
+        {
+            Id = Guid.NewGuid(),
+            ProtocolNumber = "1002B",
+            Title = "Problema na Rede",
+            Description = "Sem conexão",
+            CreatedByUserId = creator.Id,
+            Status = TicketStatus.Open
+        };
+
+        context.Users.AddRange(creator, admin);
+        context.Tickets.Add(ticket);
+        await context.SaveChangesAsync();
+
+        var service = new TicketService(context, _notificationServiceMock.Object);
+
+        await service.StartAnalysisAsync(ticket.Id, admin.Id, Role.Admin);
+
+        var updatedTicket = await context.Tickets.FindAsync(ticket.Id);
+        updatedTicket!.Status.Should().Be(TicketStatus.InAnalysis);
+        updatedTicket.AssignedToUserId.Should().Be(admin.Id);
+
+        _notificationServiceMock.Verify(n => n.CreateNotificationAsync(
+            creator.Id,
+            ticket.Id,
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            NotificationType.StatusChanged), Times.Once);
+    }
+
+    [Fact]
     public async Task DeveImpedirUsuarioComumDeIniciarAnaliseDeChamado()
     {
         using var context = CreateDbContext();

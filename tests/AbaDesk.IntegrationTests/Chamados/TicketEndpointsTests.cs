@@ -48,6 +48,34 @@ public class TicketEndpointsTests : IClassFixture<AbaDeskWebApplicationFactory>
     }
 
     [Fact]
+    public async Task DeveCriarChamadoSemAnexoComSucessoRetornando201Created()
+    {
+        var userClient = await AuthHelper.CreateAuthenticatedClientAsync(_factory, "usuario1@abadesk.local", "senha123");
+
+        var request = new CreateTicketRequest
+        {
+            Title = "Dúvida sobre relatório",
+            Description = "Como emitir o relatório mensal no sistema",
+            Category = Category.Question,
+            Priority = Priority.Low,
+            CompanyUnit = "Matriz",
+            Department = "Financeiro",
+            SystemName = "ERP",
+            AttachmentBase64 = null
+        };
+
+        var response = await userClient.PostAsJsonAsync("/api/tickets", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var ticket = await response.Content.ReadFromJsonAsync<TicketResponse>(AuthHelper.JsonOptions);
+        ticket.Should().NotBeNull();
+        ticket!.Id.Should().NotBeEmpty();
+        ticket.Title.Should().Be("Dúvida sobre relatório");
+        ticket.Status.Should().Be(TicketStatus.Open);
+    }
+
+    [Fact]
     public async Task DeveConsultarDetalhesDoChamadoCriadoComSucesso()
     {
         var userClient = await AuthHelper.CreateAuthenticatedClientAsync(_factory, "usuario1@abadesk.local", "senha123");
