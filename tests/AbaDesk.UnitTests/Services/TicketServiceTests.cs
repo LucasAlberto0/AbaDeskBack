@@ -134,6 +134,7 @@ public class TicketServiceTests
 
         var updatedTicket = await context.Tickets.FindAsync(ticket.Id);
         updatedTicket!.Status.Should().Be(TicketStatus.InAnalysis);
+        updatedTicket.AssignedToUserId.Should().Be(attendant.Id);
 
         _notificationServiceMock.Verify(n => n.CreateNotificationAsync(
             creator.Id,
