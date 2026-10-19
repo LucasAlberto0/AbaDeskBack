@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.IO;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,10 +84,27 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddTransient<DbSeeder>();
 
-builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection(OpenAiOptions.SectionName));
+builder.Services.Configure<OpenAiOptions>(options =>
+{
+    builder.Configuration.GetSection(OpenAiOptions.SectionName).Bind(options);
+    if (string.IsNullOrWhiteSpace(options.ApiKey))
+    {
+        options.ApiKey = builder.Configuration["OPENAI_API_KEY"] 
+                      ?? builder.Configuration["OpenAiApiKey"] 
+                      ?? string.Empty;
+    }
+    if (string.IsNullOrWhiteSpace(options.AgentId))
+    {
+        options.AgentId = builder.Configuration["OPENAI_AGENT_ID"] 
+                       ?? builder.Configuration["OpenAiAgentId"] 
+                       ?? string.Empty;
+    }
+    options.ApiKey = options.ApiKey.Trim();
+    options.AgentId = options.AgentId.Trim();
+});
 builder.Services.AddHttpClient<IAiService, AiService>((serviceProvider, client) =>
 {
-    var options = builder.Configuration.GetSection(OpenAiOptions.SectionName).Get<OpenAiOptions>() ?? new OpenAiOptions();
+    var options = serviceProvider.GetRequiredService<IOptions<OpenAiOptions>>().Value;
     client.BaseAddress = new Uri(options.BaseUrl);
     client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds > 0 ? options.TimeoutSeconds : 60);
 });
