@@ -24,6 +24,5 @@ public class CreateTicketRequest
     [Required(ErrorMessage = "A prioridade é obrigatória.")]
     public Priority Priority { get; set; }
 
-    [Required(ErrorMessage = "O anexo da imagem é obrigatório.")]
-    public string AttachmentBase64 { get; set; } = string.Empty;
+    public string? AttachmentBase64 { get; set; }
 }
