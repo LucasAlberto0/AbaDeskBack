@@ -20,14 +20,41 @@ builder.Services.AddSwaggerGen(c =>
     c.EnableAnnotations();
 });
 
+var allowedOriginsConfig = builder.Configuration["CORS_ALLOWED_ORIGINS"]
+    ?? builder.Configuration["Cors:AllowedOrigins"]
+    ?? builder.Configuration["AllowedOrigins"];
+
+var configuredOrigins = !string.IsNullOrWhiteSpace(allowedOriginsConfig)
+    ? allowedOriginsConfig.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    : Array.Empty<string>();
+
+var defaultOrigins = new[]
+{
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:5017"
+};
+
+var allowedOrigins = configuredOrigins.Union(defaultOrigins).Distinct().ToArray();
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        builder.SetIsOriginAllowed(origin => true)
-               .AllowAnyMethod()
-               .AllowAnyHeader()
-               .AllowCredentials();
+        if (builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(allowedOriginsConfig))
+        {
+            policy.SetIsOriginAllowed(origin => new Uri(origin).IsLoopback)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 
