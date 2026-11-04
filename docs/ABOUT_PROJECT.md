@@ -1,141 +1,128 @@
-# ABA Desk 🏢
+# ABA Desk — Central de Atendimento e Gestão do Ciclo de Vida de Demandas
 
-> **Central de Atendimento e Gestão do Ciclo de Vida de Sistemas**
-
----
-
-## 📖 Sobre o projeto
-
-O **ABA Desk** é uma plataforma corporativa interna criada para centralizar chamados, solicitações de melhorias, erros e demandas relacionadas aos sistemas utilizados pela empresa.
-
-O objetivo principal é organizar todo o **ciclo de vida de uma demanda de TI em um único sistema**, garantindo que o chamado seja acompanhado desde sua abertura até sua resolução definitiva.
-
-Mais do que apenas um "sistema de chamados", o ABA Desk atua como uma **plataforma completa de gestão do ciclo de vida de demandas de TI**, abrangendo as etapas de atendimento, análise técnica, desenvolvimento, execução de testes e homologação final com o usuário.
+> **Plataforma Corporativa de Help Desk / Service Desk do Grupo ABA Infra**
 
 ---
 
-## 🎯 Problema que o ABA Desk resolve
+## 📖 1. Sobre o Projeto
 
-Em ambientes corporativos dinâmicos, solicitações de TI podem chegar de forma desorganizada por diferentes canais (e-mail, chat, telefone), o que resulta na perda do histórico, falta de acompanhamento adequado e falhas de comunicação.
+O **ABA Desk** é uma plataforma corporativa desenvolvida para centralizar incidentes, requisições de serviço, solicitações de melhorias e dúvidas operacionais relacionadas aos sistemas de tecnologia utilizados pelas empresas do **Grupo ABA Infra**.
 
-O ABA Desk resolve esse problema ao centralizar todo o processo. Com ele, é possível:
-
-- 📝 Registrar chamados formalmente.
-- 🗂️ Organizar as solicitações em uma fila unificada.
-- 👤 Acompanhar responsáveis por cada etapa.
-- 🚥 Controlar e definir níveis de prioridade.
-- 💬 Registrar comentários e manter uma comunicação clara.
-- ⏱️ Acompanhar o histórico completo das ações.
-- 💻 Controlar o andamento do desenvolvimento das demandas.
-- 🧪 Registrar formalmente casos de testes e seus resultados.
-- ✅ Realizar homologações documentadas.
-- 🔄 Controlar a aprovação ou reprovação da demanda.
-- 🏁 Acompanhar a resolução efetiva do problema.
+Mais do que um simples "abridor de chamados", o ABA Desk foi concebido como um **orquestrador do ciclo completo de demandas de TI**, garantindo rastreabilidade, previsibilidade e governança técnica desde o primeiro contato do usuário até a resolução efetiva e homologada da solicitação.
 
 ---
 
-## 🔄 Fluxos do Sistema
+## 🎯 2. O Problema Resolvido
 
-### Fluxo Principal
+Em operações com múltiplas unidades e terminais logísticos, solicitações de TI tendem a chegar dispersas por diferentes canais informais (e-mails, mensagens instantâneas e ligações telefônicas). Esse cenário acarreta:
 
-O ciclo de vida "Caminho Feliz" de um chamado:
+- Perda de histórico de intervenções técnicas.
+- Ausência de métricas claras de tempo de atendimento (SLA) e volumetria.
+- Falta de clareza sobre o responsável atual pela resolução.
+- Dificuldade em priorizar incidentes críticos frente a requisições rotineiras.
+- Ausência de validação formal (homologação) antes do encerramento do chamado.
+
+O **ABA Desk** soluciona esses gargalos ao unificar todo o fluxo em uma única esteira digital transparente e auditável.
+
+---
+
+## 🔄 3. Ciclo de Vida do Chamado (Workflow de Estados)
+
+O ciclo de vida de uma solicitação no ABA Desk segue uma máquina de estados finita bem definida:
+
+### 3.1 Fluxo Principal ("Caminho Feliz")
 
 ```mermaid
 graph TD
-    U([👤 Usuário]) -->|Abertura do chamado| N(📝 Novo)
-    N -->|Início do Atendimento| A(🔍 Em Análise)
-    A -->|Repasse para a TI| D(💻 Em Desenvolvimento)
-    D -->|Execução| T(🧪 Em Teste)
-    T -->|Tudo validado| H(⏳ Aguardando Homologação)
-    H -->|Aprovada| R(✅ Resolvido)
+    U([👤 Solicitante]) -->|Abertura com anexo opcional| Open(🆕 Open / Novo)
+    Open -->|Triagem pelo Suporte| InAnalysis(🔍 InAnalysis / Em Análise)
+    InAnalysis -->|Início do Atendimento Técnico| InProgress(💻 InProgress / Em Atendimento)
+    InProgress -->|Resolução com registro de solução| Resolved(✅ Resolved / Resolvido)
 ```
 
-### Fluxo Alternativo (Reprovação)
+### 3.2 Fluxo com Solicitação de Informações Externas
 
-Caso a funcionalidade entregue não esteja conforme o solicitado pelo usuário na fase de homologação:
+Quando o atendimento depende de esclarecimentos adicionais do solicitante:
 
 ```mermaid
 graph TD
-    H(⏳ Aguardando Homologação) -->|❌ Reprovada| D(💻 Em Desenvolvimento)
-    D -->|Correções e Novos testes| T(🧪 Em Teste)
-    T -->|Tudo validado| H
+    InProgress(💻 InProgress) -->|Falta de evidências/dados| WaitingUser(⏳ WaitingUser / Aguardando Usuário)
+    WaitingUser -->|Usuário responde via comentário| InProgress
+```
+
+### 3.3 Fluxo de Reabertura
+
+Caso a solução apresentada não tenha resolvido o problema na prática:
+
+```mermaid
+graph TD
+    Resolved(✅ Resolved) -->|Reabertura com justificativa| Open(🆕 Open / Reaberto)
 ```
 
 ---
 
-## 👥 Tipos de Conta
+## 👥 4. Perfis de Acesso e Matriz de Responsabilidade (RBAC)
 
-O sistema possui três níveis de acesso e perfis de usuário:
+O sistema implementa **Controle de Acesso Baseado em Papéis** com três perfis principais:
 
-### 1. Usuário
-É o **solicitante**. Representa os colaboradores de todas as áreas da empresa.
-**Permissões:**
-- Abrir chamados.
-- Visualizar e acompanhar os seus próprios chamados.
-- Adicionar comentários e responder solicitações do TI.
-- Realizar homologações (aceitar/rejeitar a entrega) quando for o responsável.
+### 1. Usuário Solicitante (`User`)
+- Representa os colaboradores das unidades operacionais e departamentos corporativos.
+- **Permissões:**
+  - Abertura de novos chamados com evidências (imagens/documentos).
+  - Visualização restrita aos chamados abertos por ele mesmo.
+  - Interação via comentários nos seus chamados.
+  - Acesso à consulta com o assistente inteligente **ABA Assist**.
+  - Reabertura de chamados resolvidos caso o problema persista.
 
-### 2. Atendente
-É o responsável pelo **atendimento e gerenciamento** das demandas (Analista / Dev).
-**Permissões:**
-- Visualizar todos os chamados abertos na plataforma.
-- Realizar a triagem e análise das solicitações.
-- Atribuir responsáveis pelo ticket.
-- Atuar ativamente no desenvolvimento (no MVP o Atendente engloba a função de desenvolvedor).
-- Criar e registrar resultados de testes.
-- Enviar as demandas finalizadas para a homologação.
-- Acompanhar o fluxo completo e resolver chamados.
+### 2. Atendente / Suporte Técnico (`Attendant`)
+- Representa a equipe técnica de TI, suporte e desenvolvimento.
+- **Permissões:**
+  - Visualização global de todos os chamados da empresa.
+  - Acesso ao quadro **Kanban** de atendimento.
+  - Triagem, assunção e atribuição de chamados.
+  - Movimentação de status (*Open → InAnalysis → InProgress → WaitingUser → Resolved*).
+  - Registro formal da solução técnica adotada.
 
-### 3. Administrador
-Possui todas as permissões de um Atendente, com privilégios adicionais de **gestão**.
-**Permissões:**
-- Criar e editar dados de usuários.
-- Ativar ou desativar contas de acesso.
-- Alterar perfis e níveis de privilégio (User ↔ Attendant ↔ Admin).
-- Visualizar informações administrativas globais.
+### 3. Administrador (`Admin`)
+- Possui todas as permissões de um Atendente, com privilégios adicionais de gestão:
+  - Gerenciamento completo de usuários (cadastro, edição de dados e inativação de contas).
+  - Alteração de níveis de privilégio (*User ↔ Attendant ↔ Admin*).
+  - Exclusão definitiva de chamados.
+  - Acesso a métricas globais e consolidadas de todas as unidades no Dashboard.
 
 ---
 
-## 🚥 Status dos Chamados
+## 🚦 5. Estados dos Chamados (`TicketStatus`)
 
-Cada chamado no ABA Desk reflete um momento específico do ciclo:
-
-- 🆕 **Novo:** O chamado acabou de ser aberto pelo usuário e aguarda o primeiro atendimento.
-- 🔍 **Em Análise:** O atendente está avaliando o escopo da solicitação para entender a necessidade.
-- 💻 **Em Desenvolvimento:** Um responsável técnico (Atendente) está atuando ativamente no código/solução.
-- 🧪 **Em Teste:** O desenvolvimento foi concluído e os casos de teste estão sendo executados para garantir a qualidade.
-- ⏳ **Aguardando Homologação:** A demanda passou nos testes e aguarda a validação e o "de acordo" do responsável (usuário).
-- ✅ **Resolvido:** O ciclo foi encerrado com sucesso. Nenhuma alteração de fluxo adicional é permitida.
+| Status | Descrição Operacional | Próximos Estados Permitidos |
+| :--- | :--- | :--- |
+| **Open (Novo)** | Chamado recém-criado, aguardando triagem técnica da equipe de TI. | `InAnalysis`, `InProgress` |
+| **InAnalysis (Em Análise)** | O chamado está sendo avaliado tecnicamente quanto a escopo, impacto e prioridade. | `InProgress`, `WaitingUser`, `Resolved` |
+| **InProgress (Em Atendimento)** | A equipe técnica está atuando ativamente na resolução do incidente ou demanda. | `WaitingUser`, `Resolved` |
+| **WaitingUser (Aguardando Usuário)** | A demanda necessita de retorno, esclarecimento ou validação do solicitante. | `InProgress`, `Resolved` |
+| **Resolved (Resolvido)** | A solução técnica foi aplicada e o chamado foi encerrado com sucesso. | `Open` (mediante reabertura formal com justificativa) |
 
 ---
 
-## ✨ Principais Funcionalidades
+## ✨ 6. Principais Recursos da Plataforma
 
-### 🔐 Autenticação
-- Login utilizando E-mail e Senha.
-- Sessão segura baseada na autenticação por **JWT (JSON Web Token)**.
+### 🔐 Autenticação Segura e Stateless
+- Baseada em **JSON Web Tokens (JWT)** assinados com algoritmo HMAC-SHA256.
+- Hashing criptográfico de senhas utilizando o padrão seguro do ASP.NET Identity (`PBKDF2`).
 
-### 🎫 Gestão de Chamados
-- Criação, listagem com filtros avançados e busca textual.
-- Estrutura completa de paginação.
-- Visualização de detalhes granulares (status, prioridade, responsável).
-- Histórico imutável de ações ("Audit Trail").
-- Thread de comentários centralizada.
+### 🎫 Gestão de Chamados e Evidências
+- Identificação por **número de protocolo sequencial** de fácil memorização.
+- Armazenamento binário de imagens de evidência no próprio banco de dados (`byte[]`), garantindo integridade e portabilidade sem acoplamento a discos locais.
+- Listagens com paginação eficiente (`page`, `pageSize`) e múltiplos filtros combináveis (status, prioridade, categoria, unidade, sistema, solicitante e responsável).
 
-### 💻 Desenvolvimento
-- Controle de andamento da demanda e rastreabilidade direta identificando o responsável pelo código.
+### 🔔 Notificações em Tempo Real com SignalR
+- Hub de WebSockets (`TicketHub`) integrado para atualização instantânea da interface.
+- Disparo de notificações automáticas em mudanças de status, novos comentários e solicitações de informação.
 
-### 🧪 Casos de Teste (QA)
-- Permite criar testes detalhados com *Resultado Esperado* e *Resultado Obtido*.
-- Aprovação ou Reprovação item a item.
-- **Regra de Negócio Crítica:** A demanda *somente* pode avançar para a fase de "Homologação" se possuir ao menos 1 caso de teste, e caso **todos** os testes criados estejam aprovados.
+### 🤖 Assistente Virtual Inteligente (ABA Assist)
+- Chatbot corporativo impulsionado por modelos avançados de IA para suporte operacional.
+- Fornece respostas técnicas estruturadas, formatação Markdown com blocos de código copiáveis e persistência de sessões.
 
-### ✅ Homologação
-- Permite que o responsável do chamado (geralmente quem abriu) aprove ou rejeite a entrega.
-- Caso aprovada: O ticket é marcado como **Resolvido**.
-- Caso rejeitada: O ticket volta obrigatoriamente para **Em Desenvolvimento** e exige um comentário de justificativa.
-
-### 📊 Dashboard
-- Visão estratégica por meio de dashboards adaptativos de acordo com o perfil.
-- **Usuários:** Visualizam métricas ativas atreladas aos seus próprios chamados.
-- **Atendentes / Administradores:** Visualizam filas globais, desempenho do time de TI e taxas de resolução de tickets corporativos.
+### 📊 Dashboard de Indicadores em Tempo Real
+- Agregação de métricas no banco de dados (totalizadores por status, prioridade e categoria).
+- Visão adaptativa que isola dados pessoais do solicitante e provê visão macro para a liderança técnica.
