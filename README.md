@@ -8,7 +8,8 @@
 [![Swagger](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?style=for-the-badge&logo=swagger)](https://swagger.io/)
 [![xUnit](https://img.shields.io/badge/Tests-xUnit_|_Moq-007ACC?style=for-the-badge)](https://xunit.net/)
 
-> **Motor de Regras de Negócio e Serviços em Tempo Real da Plataforma ABA Desk**
+> **Motor de Regras de Negócio e Serviços em Tempo Real da Plataforma ABA Desk**  
+> **Aviso:** Este projeto é um **teste técnico desenvolvido para a empresa Grupo ABA Infra**.
 
 Central inteligente e robusta de serviços desenvolvida em **.NET 9 (C#)** para orquestrar o ciclo completo de atendimento, análise, desenvolvimento, testes de qualidade (QA), homologação e resolução de chamados de tecnologia do **Grupo ABA Infra**.
 
